@@ -125,7 +125,15 @@ hr {
 				<% end_if %>
 			</div>
 			<div id="NewsletterHeader" class="content">
-				<a href="http://www.b-p-p.info"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_01.png" border="0" /></a><a href="http://www.manfrotto.de"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_02.png" border="0" /></a><a href="http://eu.asukabook.com"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_03.png" border="0" /></a><a href="http://www.fotowerkstatt-belz.de"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_04.png" border="0" /></a><a href="http://www.sander.de"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_05.png" border="0" /></a><a href="http://www.allcop.de"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_06.png" border="0" /></a><a href="http://www.epson.de"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_07.png" border="0" /></a><a href="http://www.nikon.de"><img src="http://b-p-p.info/assets/newsletter/images/sponsoren_08.png" border="0" /></a>
+				<img src="http://b-p-p.info/assets/newsletter/images/NewsletterSponsoren2010.png" style="position: absolute; padding-top: 40px;" usemap="#Map" border="0"/>
+				<map name="Map" id="Map"><area shape="rect" coords="100,54,201,82" href="http://www.manfrotto.de" target="_blank" />
+				<area shape="rect" coords="211,54,311,83" href="http://eu.asukabook.com/" target="_blank" />
+				<area shape="rect" coords="317,52,419,77" href="http://www.fotowerkstatt-belz.de" target="_blank" />
+				<area shape="rect" coords="426,49,485,73" href="http://www.sander.de/" target="_blank" />
+				<area shape="rect" coords="489,50,553,75" href="http://www.allcop.de/" target="_blank" />
+				<area shape="rect" coords="555,47,622,76" href="http://www.epson.de" target="_blank" />
+				<area shape="rect" coords="626,49,654,80" href="http://www.nikon.de" target="_blank" />
+				</map>
 				<table width="100%">
 					<tr valign="top" align="right">
 						<td>
