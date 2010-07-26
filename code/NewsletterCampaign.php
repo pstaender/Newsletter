@@ -11,6 +11,7 @@ class NewsletterCampaign extends Page {
 		"ImageStyle"=>"Varchar(250)",
 		"TableStyle"=>"Varchar(250)",
 		"TableCellAttribute"=>"Varchar(250)",
+		"TableCellStyle"=>"Varchar(250)",
 		);
 		
 	static $has_one = array(
@@ -33,6 +34,7 @@ class NewsletterCampaign extends Page {
 			new TextField("ImageStyle"),
 			new TextField("TableStyle"),
 			new TextField("TableCellAttribute"),
+			new TextField("TableCellStyle"),
 			new DropdownField(
 				'NewsletterCategoryID',
 				'Newsletter',
@@ -123,6 +125,10 @@ class NewsletterCampaign extends Page {
 						if (strlen(trim($campaignPage->TableCellAttribute))>0) {
 							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 '.$campaignPage->TableCellAttribute.'>', $content); 
 						}
+						if (strlen(trim($campaignPage->TableCellStyle))>0) {
+							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2  style="'.$campaignPage->TableCellStyle.'">', $content); 
+						}
+						
 						if(!file_exists($contentfile)) {
 							// Write to file
 							if($fh = fopen($contentfile, 'w')) {
@@ -146,7 +152,7 @@ class NewsletterCampaign_Controller extends ContentController {
 		if (isset($_REQUEST['send_to'])) {
 			if ($content = $this->dataRecord->renderedNewsletter()) {
 				if (Permission::check("EDIT_NEWSLETTER")) {
-					$emailMessage = new Email(NewsletterHolder::$newsletterEmail, $_REQUEST['send_to'], $this->dataRecord->Title, $content);
+					$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->getManagedReturnAddress(), $_REQUEST['send_to'], $this->dataRecord->Title, $content);
 					$emailMessage->send();
 					echo "Newsletter wurde probeverschickt an ".$_REQUEST['send_to'];
 				} else {
