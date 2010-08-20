@@ -1,0 +1,42 @@
+#NewsletterNavigator {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	width: 200px;
+	background: #000;
+	color: #fff;
+	font-family: 'Lucida Grande','Lucida Sans Unicode', Arial;
+	font-size: 12px;
+	padding: 5px;
+	-moz-border-radius: 15px;
+	border-radius: 15px;
+}
+#NewsletterNavigator fieldset {
+	border: 0px;
+	padding: 10px;
+}
+#NewsletterNavigator .middleColumn {
+	position: absolute;
+}
+#Form_NewsletterNavigatorForm_action_send_to {
+/*	float: right;*/
+}
+#NewsletterNaviMessage {
+	margin-top: 3em;
+	margin-left: 10px;
+}
+#Email label {
+	display: none;
+}
+#NewsletterNavigator .middleColumn .message {
+	color: #000;
+}
+#Form_NewsletterNavigatorForm_action_send_to {
+	background: #fff;
+	background-image: none;
+	color: #000;
+	border: 0px;
+	margin-top: 30px;
+	margin-left: 10px;
+	height: 20px;
+}

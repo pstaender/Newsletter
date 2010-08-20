@@ -8,8 +8,7 @@
 	<meta name="author" content="bpp">
 </head>
 <body>
-
 $Content
-
+$NewsletterNavigator
 </body>
 </html>

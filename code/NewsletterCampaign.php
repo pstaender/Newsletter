@@ -7,8 +7,13 @@ class NewsletterCampaign extends Page {
 		"Footer"=>"HTMLText",
 		"StyleSheet"=>"Text",
 		"TemplateFilename"=>"Varchar(250)",
+		"BodyStyle"=>"Varchar(250)",
+		"ContentStyle"=>"Varchar(250)",
 		"LinkStyle"=>"Varchar(250)",
 		"ImageStyle"=>"Varchar(250)",
+		"HeadingStyle"=>"Varchar(250)",
+		"ParagraphStyle"=>"Varchar(250)",
+		"HorizontalRuleStyle"=>"Varchar(250)",
 		"TableStyle"=>"Varchar(250)",
 		"TableCellAttribute"=>"Varchar(250)",
 		"TableCellStyle"=>"Varchar(250)",
@@ -23,6 +28,8 @@ class NewsletterCampaign extends Page {
 		"Recievers"=>"NewsletterReciever",
 		"Advertisements"=>"NewsletterAdvertisement",
 		);
+	
+	static $makeRelativeToAbsoluteURLS = true;
 		
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
@@ -30,8 +37,13 @@ class NewsletterCampaign extends Page {
 		$fields->addFieldsToTab('Root.Content.Newsletter', array(
 			new TextField("Name"),
 			new TextField("TemplateFilename"),
+			new TextField("BodyStyle"),
+			new TextField("ContentStyle"),
 			new TextField("LinkStyle"),
 			new TextField("ImageStyle"),
+			new TextField("ParagraphStyle"),
+			new TextField("HeadingStyle"),
+			new TextField("HorizontalRuleStyle"),
 			new TextField("TableStyle"),
 			new TextField("TableCellAttribute"),
 			new TextField("TableCellStyle"),
@@ -126,9 +138,29 @@ class NewsletterCampaign extends Page {
 							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 '.$campaignPage->TableCellAttribute.'>', $content); 
 						}
 						if (strlen(trim($campaignPage->TableCellStyle))>0) {
-							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2  style="'.$campaignPage->TableCellStyle.'">', $content); 
+							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 style="'.$campaignPage->TableCellStyle.'">', $content); 
 						}
-						
+						if (strlen(trim($campaignPage->HeadingStyle))>0) {
+							$content = preg_replace('#((<h)([0-9].*)[/]?>)#U', '\2\3 style="'.$campaignPage->HeadingStyle.'" >', $content); 
+						}
+						if (strlen(trim($campaignPage->ParagraphStyle))>0) {
+							$content = preg_replace('#(<p(.*)[/]?>)#U', '<p \2 style="'.$campaignPage->ParagraphStyle.'" >', $content); 
+						}
+						if (strlen(trim($campaignPage->HorizontalRuleStyle))>0) {
+							$content = preg_replace('#(<hr (.*)[/]?>)#U', '<img \2 style="'.$campaignPage->HorizontalRuleStyle.'" />', $content); 
+						}
+						if (self::$makeRelativeToAbsoluteURLS) {
+							$base = Director::absoluteBaseURL();
+							// exit($base);
+							$s = $content;
+							$sl = "\'";
+							$s = preg_replace('/(\<.*)(src\=)+([\"'.$sl.']+[http\:\/\/|https\:\/\/]{0})(.*\>)/i',"$1$2$3".$base."$4",$s);
+							$base = Director::protocolAndHost();
+							// exit($base);
+							$s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
+							// $s = preg_replace('/(\<.*)+(href\=[\"'.$sl.'])+(http\:\/\/|https\:\/\/){0}(.*\>)/i',"$1$2$3".$base."$4",$s);
+							$content = $s;
+						}
 						if(!file_exists($contentfile)) {
 							// Write to file
 							if($fh = fopen($contentfile, 'w')) {
@@ -137,6 +169,26 @@ class NewsletterCampaign extends Page {
 							}
 						}
 						return file_get_contents($contentfile);
+	}
+	
+	function onBeforeWrite() {
+		//strip .ss extension, if typed for filename
+		if ($this->TemplateFilename) $this->TemplateFilename = preg_replace("/(.*)(\.ss)/i","$1",$this->TemplateFilename);
+		return parent::onBeforeWrite();
+	}
+	
+	function sendTo($to,$from=null,$template="EmailTemplate") {
+		if ($from==null) $from = NewsletterHolder::$newsletterEmail;
+		if (Permission::check("EDIT_NEWSLETTER")) {
+			$content = $this->renderedNewsletter();
+			$emailMessage = new Email(NewsletterHolder::$newsletterEmail, $to, $this->Title);
+			$emailMessage->setBody($content);
+			$emailMessage->setTemplate($template);
+			$emailMessage->send();
+			return true;//echo "Newsletter-Testmessage was send '".$to."'...";
+		} else {
+			user_error("No permission ['EDIT_NEWSLETTER'] to send newsletter...");
+		}
 	}
 	
 	
@@ -150,22 +202,74 @@ class NewsletterCampaign_Controller extends ContentController {
 			$this->dataRecord->StyleSheet
 			);
 		if (isset($_REQUEST['send_to'])) {
-			if ($content = $this->dataRecord->renderedNewsletter()) {
-				if (Permission::check("EDIT_NEWSLETTER")) {
-					$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->getManagedReturnAddress(), $_REQUEST['send_to'], $this->dataRecord->Title, $content);
-					$emailMessage->send();
-					echo "Newsletter wurde probeverschickt an ".$_REQUEST['send_to'];
-				} else {
-					echo "No permission to send newsletter...";
-				}
-			}
+			$this->dataRecord->sendTo($_REQUEST['send_to']);
+		}
+		if ($this->isPreviewMode()) {
+			echo $this->dataRecord->renderedNewsletter();
+			exit();
 		}
 	}
 	
 	function index() {
-		if ($fn = $this->dataRecord->TemplateFilename) return $this->renderWith($fn); 
-		
+		if ($fn = $this->dataRecord->TemplateFilename) return $this->renderWith($fn); 	
 		return array();
+	}
+	
+	function isPreviewMode() {
+		return ((isset($_REQUEST['send_to'])) OR (isset($_REQUEST['preview'])) OR (strtolower(Director::urlParam("Action"))=="preview"));
+	}
+	
+	function preview() {
+		echo $this->dataRecord->renderedNewsletter();
+		exit();
+	}
+	
+	function newsletterNavigator() {
+		if (($this->memberIsNewsletterAdmin())) {
+			Requirements::JavaScript("newsletter/javascript/jquery.js");
+			Requirements::JavaScript("newsletter/javascript/jqDnR.js");
+			Requirements::JavaScript("newsletter/javascript/newsletternavi.js");
+			Requirements::ThemedCSS("newsletternavigator");
+			
+			return '
+<div id="NewsletterNavigator">
+	'.$this->NewsletterNavigatorForm()->forTemplate().'
+	<div id="NewsletterNaviMessage">
+	
+	</div>
+</div>';
+		}
+	}
+	
+	function NewsletterNavigatorForm() {
+		$fields = new FieldSet(
+			new EmailField("Email")
+		);
+		$actions = new FieldSet(new FormAction("send_to", _t("NEWSLETTER.SEND_TEST_TO","Testverand")));
+		$form = new Form($this, "NewsletterNavigatorForm", $fields, $actions);
+		$form->disableSecurityToken();
+		return $form;
+	}
+	
+	function send_to($data) {
+		$email = $_REQUEST['email'];
+		if(!eregi("^[[:alnum:]][a-z0-9_.-]*@[a-z0-9.-]+\.[a-z]{2,4}$", $email)) {
+			echo "Eine gültige eMail-Adresse angegeben!";
+			exit();
+		}
+		$this->dataRecord->sendTo($email);
+		
+		echo "Testversand an '".$email."'...";
+		exit();
+		
+	}
+	
+	function memberIsNewsletterAdmin() {
+		return Permission::check("EDIT_NEWSLETTER");
+	}
+	
+	function isPreviewForAdmin() {
+		return (($this->memberIsNewsletterAdmin()) && ($this->isPreviewMode()));
 	}
 	
 	function NewsletterURL() {

@@ -30,7 +30,7 @@ class NewsletterHolder extends SiteTree {
 			"UnsubscribeMessage"=>"Abmeldungsnachricht",
 		);
 	
-	static $newsletterEmail = "newsletter@b-p-p.info";
+	static $newsletterEmail = "newsletter@hd-healthsystem.com";
 	
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
@@ -63,11 +63,12 @@ class NewsletterHolder_Controller extends Page_Controller {
 		"signup",
 		"unsubscribe",
 		"confirm",
-		"send"=>"ADMIN",
-		"admin"=>"ADMIN",
-		"import_defaults"=>"ADMIN",
-		"edit_recievers"=>"ADMIN",
-		"RecieverForm"=>"ADMIN",
+		"send"=>"EDIT_NEWSLETTER",
+		"admin"=>"EDIT_NEWSLETTER",
+		"import_defaults"=>"EDIT_NEWSLETTER",
+		"edit_recievers"=>"EDIT_NEWSLETTER",
+		"delete_all"=>"EDIT_NEWSLETTER",
+		"RecieverForm"=>"EDIT_NEWSLETTER",
 		"NewsletterSignupForm",
 		);
 	
@@ -239,8 +240,8 @@ class NewsletterHolder_Controller extends Page_Controller {
 		return "newsletter";
 	}
 	
-	function SendLink() {
-		return $this->URL()."/send/".Director::urlParam("ID");
+	function SendLink($send=10) {
+		return $this->URL()."/send/".Director::urlParam("ID")."/".$send;
 	}
 	
 	function Campaigns() {
@@ -255,8 +256,11 @@ class NewsletterHolder_Controller extends Page_Controller {
 	 */
 		
 	function send() {
+		if (!$this->isAjax()) echo "<h2>send() only via ajax-request</h2>Security issue...";
 		$this->Title = "Newsletter verschicken";
 		$id = (int) Director::urlParam("ID");
+		$count = (int) Director::urlParam("OtherID");
+		if(!(($id>0) && ($count>0))) exit('<h2>Syntax</h2>'.$this->URL().'/send/$newsletter_campaign_id/$numbers_of_sendings_per_request/');
 		if ($camp = DataObject::get_by_id("NewsletterCampaign",$id)) {
 			$newsletterCategory = DataObject::get_by_id("NewsletterCategory",$camp->NewsletterCategoryID);
 			if ($recievers = DataObject::get("NewsletterReciever", "NewsletterID = {$id} AND Send = 0")) {
@@ -265,25 +269,31 @@ class NewsletterHolder_Controller extends Page_Controller {
 					//send emails
 					$i=0;
 					foreach ($recievers as $r) {
-						// todo
-						// Send eMail
-						$mailContent = str_replace("%USER_EMAIL%",$r->Email, $content);
-						$mailContent = str_replace("%NEWSLETTER_ID%",$newsletterCategory->ID, $mailContent);
-						if (DataObject::get("NewsletterBlacklist","Email LIKE '".$r->Email."' AND NewsletterCategoryID = ".$camp->NewsletterCategoryID)) {
-							$r->Send = 2;
-							$r->write();
-							//do not send
-						} else {
-							$email = new Email(DataObject::get_one("NewsletterHolder")->getManagedReturnAddress(), $r->Email, $camp->Title, $mailContent);
-							if ($email->send()) {
-								$r->Send = 1;
-								$r->write();
-							}
+						if ($i<$count) {
+							$mailContent= $content;
+							$mailContent = str_replace("%FIRSTNAME%",$r->FirstName, $mailContent);
+							$mailContent = str_replace("%SURNAME%",$r->Surname, $mailContent);
+							$mailContent = str_replace("%SALUTATION%",$r->Salutation(), $mailContent);
+							$mailContent = str_replace("%USER_EMAIL%",$r->Email, $mailContent);
+							$mailContent = str_replace("%NEWSLETTER_ID%",$newsletterCategory->ID, $mailContent);
+							if (DataObject::get("NewsletterBlacklist","Email LIKE '".$r->Email."' AND NewsletterCategoryID = ".$camp->NewsletterCategoryID)) {
+									$r->Send = 2;
+									$r->write();
+									//do not send
+								} else {
+									$email = new Email(DataObject::get_one("NewsletterHolder")->getManagedReturnAddress(), $r->Email, $camp->Title, $mailContent);
+									if ($email->send()) {
+										$r->Send = 1;
+										$r->write();
+										$i++;
+									}
+								}
 						}
-						$i++;
+						
 					}
-					$this->Content = "Es wurden {$i} Newsletter verschickt.";
-					return array();
+					exit($i."");
+					// $this->Content = $i." " ._t("NEWSLETTER.WERE_SENDED","Newsletter wurden verschickt.");
+					// return array();
 				}
 				
 			} else {
@@ -325,6 +335,25 @@ class NewsletterHolder_Controller extends Page_Controller {
 		return array();
 	}
 	
+	function delete_all() {
+		if ($id = Director::urlParam("ID")) {
+			if ($c = DataObject::get_by_id("NewsletterCampaign", (int) $id)) {
+				$recievers = DataObject::get("NewsletterReciever","NewsletterID = ".(int) $id);
+				$i=0;
+				foreach ($recievers as $r) {
+					$r->delete();
+					$i++;
+				}
+				$this->Title = "Empfänger löschen";
+				$this->Content = "Insg. {$i} Empfänger gelöscht...";
+			}
+		} else {
+			$this->Title = "Error";
+			$this->Content = "Es ist keine gültige Newsletter Aktion ausgewählt...";
+		}
+		return array();
+	}
+	
 	function edit_recievers() {
 		if ($id = Director::urlParam("ID")) {
 			if ($c = DataObject::get_by_id("NewsletterCampaign", (int) $id)) {
@@ -338,7 +367,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 					$this,
 					"RecieverForm",
 					$fields,
-					new FormAction("ProceedRecieverForm", "Hinzufügen"),
+					new FieldSet(new FormAction("ProceedRecieverForm", "Hinzufügen")),
 					new RequiredFields(
 						"Text"
 					)
@@ -353,27 +382,50 @@ class NewsletterHolder_Controller extends Page_Controller {
 	}
 	
 	function RecieverForm($data) {
-		if ($lines = explode("\n",$data['Text'])) {
+		$text = $data['Text'];
+		$text = str_replace(",",";",$text);
+		$text = str_replace(";;","; ;",$text);
+		if ($lines = explode("\n",$text)) {
+			
 			$id = (int) $data['ID'];
 			$str = "";
+
+			$firstLine = $lines[0];
+			$fields = explode(";",$firstLine);
+			
+			$j=0;
+			$table = array();
+			foreach($fields as $f) {
+				$f = strtolower(trim($f));
+				if (($f=="sex")||($f=="gender")||($f=="geschlecht")) $table['gender']=$j;
+				if (($f=="first")||($f=="firstname")||($f=="vorname")) $table['firstname']=$j;
+				if (($f=="sur")||($f=="surname")||($f=="nachname")) $table['surname']=$j;
+				if (($f=="email")||($f=="mail")) $table['mail']=$j;
+				$j++;
+			}
+
 			$i=0;
 			foreach($lines as $line) {
 				$line = trim($line);
 				if ($segments = explode(";",$line)) {
-					// $firstname = Convert::Raw2SQL(trim($s[0]));
-					// $surname = Convert::Raw2SQL(trim($s[1]));
+					$firstname = $surname = $gender = null;
+					if (isset($table['firstname'])) $firstname = Convert::Raw2SQL(trim($segments[$table['firstname']]));
+					if (isset($table['surname'])) $surname = Convert::Raw2SQL(trim($segments[$table['surname']]));
+					if (isset($table['gender'])) $gender = Convert::Raw2SQL(trim($segments[$table['gender']]));
+					//serach all segments for email
 					foreach ($segments as $s) {
 						$email = trim($s);
-						// if (strlen($email)>0) $i++;
 						if (eregi("^[a-z0-9]+([-_\.]?[a-z0-9])+@[a-z0-9]+([-_\.]?[a-z0-9])+\.[a-z]{2,4}", $email)) {
 							if (!DataObject::get("NewsletterReciever","NewsletterID = {$id} AND Email LIKE '{$email}'")) {
 								$i++;
 								$r = new NewsletterReciever();
+								$r->FirstName = $firstname;
+								$r->Surname = $surname;
 								$r->NewsletterID = $id;
 								$r->Send = 0;
 								$r->Email = $email;
 								$r->write();
-								$str .= "<strong>".$r->Email."</strong>  hinzugefügt...<br/>\n";								
+								$str .= "<strong>".$r->Email."</strong> ($gender $firstname $surname)  hinzugefügt...<br/>\n";								
 							}
 						}
 					}

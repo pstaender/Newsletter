@@ -5,6 +5,7 @@ class NewsletterReciever extends DataObject {
 	static $db = array(
 		"FirstName"=>"Varchar(100)",
 		"Surname"=>"Varchar(100)",
+		"Gender"=>"Enum('m,f,-','-')",
 		"Email"=>"Varchar(250)",
 		"Send"=>"Int",
 		);
@@ -37,6 +38,16 @@ class NewsletterReciever extends DataObject {
 					));
 		$fields->push(new HiddenField("ID", null, $this->ID));		
 		return $fields;
+	}
+	
+	function gender() {
+		if ($this->Gender=="-") return null;
+		return $this->Gender;
+	}
+	
+	function salutation() {
+		if ($this->Gender=="m") return "Mr.";
+		if ($this->Gender=="f") return "Mrs.";
 	}
 	
 }

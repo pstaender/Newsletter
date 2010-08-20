@@ -21,7 +21,7 @@
 <div id="ContentMain" class="typography">
 	<h2>$MetaTitle</h2>
 	<br />
-	<% control Children %><p><a href="$Link"><h4>$Subtitle</h4>$Title</a></p><% end_control %>
+	<% control Children %><p><a href="{$Link}?preview"><h4>$Subtitle</h4>$Title</a></p><% end_control %>
 	$Content
 	
 </div>

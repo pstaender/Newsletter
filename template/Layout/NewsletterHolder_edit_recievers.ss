@@ -1,5 +1,8 @@
-<h4><a href="$SelectedNewsletterCampaign.Link"> Newsletter ansehen</a></h4>
+<% require JavaScript(newsletter/javascript/jquery.js) %> 
+<% require JavaScript(newsletter/javascript/newsletteradmin.js) %>
+<% require ThemedCss(newsletteradmin) %>
 
+<h4><a href="$SelectedNewsletterCampaign.Link"> Newsletter ansehen</a></h4>
 
 $Content
 $Form
@@ -7,12 +10,12 @@ $Form
 
 <h2>Empfänger hinzufügen</h2>
 <div>
-	<b>Bitte auf folgende Regel achten:</b><br/>
-	<p>(CSV-Format)</p>
-	<p><b>Beispiel:</b><br/>
-	philipp.staender@gmail.com<br/>
-	wolfgang.kornfeld@b-p-p.info<br/>
-	etc...</p>
+	<h3>Erste Zeile</h3>
+	<p>Felder definieren (firstname;surname;gender;email)</p>
+	<p>Trennzeichen ; oder , - Geschlecht (m/f)</p>
+	<h3>Datensätze</h3>
+	<h4>Beispiel</h4>
+	<p>max;mustermann;m;max@mustermann.com</p>
 </div>
 
 <style type="text/css">
@@ -35,15 +38,17 @@ table.recieverList td {
 </style>
 
 <table class="recieverList">
-	<tr><td><strong>Email</strong></td><td>Vorname&nbsp;&nbsp;</td><td>Nachname</td></tr>
+	<tr><td><strong>Email</strong></td><td>Geschlecht&nbsp;</td><td>Vorname&nbsp;&nbsp;</td><td>Nachname</td></tr>
 <% control Recievers %>
-	<tr><td class="userStatus{$Send}"><strong>$Email</strong></td><td>$FirstName</td><td>$Surname</td></tr>
+	<tr><td class="userStatus{$Send}"><strong>$Email</strong></td><td>$Gender</td><td>$FirstName</td><td>$Surname</td></tr>
 <% end_control %>
-	<tr><td><h4>Abonierte Adressen (noch nicht unbed. eingetragen)</h4></td></tr>
+	<tr><td colspan="4"><h4>Abonierte Adressen (noch nicht unbed. eingetragen)</h4></td></tr>
 <% control Subscribers %>
-	<tr><td class="userStatus{$Send}"><strong>$Email</strong></td><td>$FirstName</td><td>$Surname</td></tr>
+	<tr><td class="userStatus{$Send}"><strong>$Email</strong></td><td>$Gender</td><td>$FirstName</td><td>$Surname</td></tr>
 <% end_control %>
 </table>
+
+<p><a href="$URL/delete_all/$UrlID">Alle $Recievers.Count Empfänger löschen</a></p>
 
 
 
@@ -54,5 +59,9 @@ table.recieverList td {
 <br/>
 <h4>Newsletter an $Recievers.Count Empfänger verschicken</h4>
 <br/>
-<p>Sind sie sicher?</p>
-<a href="$SendLink" onclick="javascript: if (confirm('Sicher?')) return true; else return false;">Ja, bin ich</a>
+<div id="NewsletterSendingProgress"></div>
+<div id="SendEmails" class="loading">
+	<a href="javascript:void();" link="$SendLink" id="ActionSendEmails">Verschicken</a>
+	<div id="EmailSendStatus"></div>
+</div>
+<br/>
