@@ -1,14 +1,11 @@
 #SendEmails {
-/*	background-color: #fff;*/
 	color: #222;
 	border: 1px solid #222;
 	text-decoration: none;
 	font-size: 1.2em;
-/*	padding: 10px;*/
 	width:200px;
 	text-align:center;
-	background: red url('../images/indicator1.gif');
-/*	position: 20px 20px;*/
+	background: red;
 }
 #SendEmails a {
 	color: #fff;
@@ -16,8 +13,19 @@
 	text-decoration:none;
 	text-transform: uppercase;
 }
-#SendEmails.loading {
-/*	background: #fff url('../images/indicator1.gif');*/
-/*	background-position: center;*/
-/*	background-repeat: no-repeat;*/
+.userStatus1 {
+	color: #2B9100;
+}
+.userStatus0 {
+	color: #E52020;
+}
+.userStatus2 {
+	color: #AAA;
+}
+table.recieverList {
+	margin: 20px 0px;
+}
+table.recieverList td {
+	background: #ddd;
+	padding: 2px 5px;
 }

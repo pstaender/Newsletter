@@ -4,6 +4,7 @@ class NewsletterCampaign extends Page {
 	
 	static $db = array(
 		"Name"=>"Varchar(200)",
+		"SendFrom"=>"Varchar(200)",
 		"Footer"=>"HTMLText",
 		"StyleSheet"=>"Text",
 		"TemplateFilename"=>"Varchar(250)",
@@ -20,13 +21,11 @@ class NewsletterCampaign extends Page {
 		);
 		
 	static $has_one = array(
-		// "NewsletterPage"=>"SiteTree"
 		"NewsletterCategory"=>"NewsletterCategory",
 		);
 		
 	static $has_many = array(
 		"Recievers"=>"NewsletterReciever",
-		"Advertisements"=>"NewsletterAdvertisement",
 		);
 	
 	static $makeRelativeToAbsoluteURLS = true;
@@ -36,6 +35,7 @@ class NewsletterCampaign extends Page {
 		$categories = DataObject::get("NewsletterCategory");
 		$fields->addFieldsToTab('Root.Content.Newsletter', array(
 			new TextField("Name"),
+			new TextField("SendFrom"),
 			new TextField("TemplateFilename"),
 			new TextField("BodyStyle"),
 			new TextField("ContentStyle"),
@@ -76,28 +76,11 @@ class NewsletterCampaign extends Page {
 			);
 		$tablefield->setParentClass(false);
 		$fields->addFieldToTab("Root.Content.Empfaengerliste", $tablefield);
-		//Newsletter Kleinanzeigen
-		$tablefield = new ComplexTableField(
-			$controller = $this,
-			$name = 'Advertisements',
-			'NewsletterAdvertisement',
-			$fieldList = array("Title"=>"Überschrift","SortOrder"=>"Reihenfolge","CompanyName"=>"Firma/Studio","PersonName"=>"Ansprechpartner"
-						),
-			null,
-			$sourceFilter = "NewsletterID = '$this->ID'",
-			$sourceSort = "SortOrder ASC"	
-		);
-		$tablefield->setPermissions(
-				array(
-					"add",
-					"show",
-					"edit",
-					"delete",
-				)
-			);
-		$tablefield->setParentClass(false);
-		$fields->addFieldToTab("Root.Content.Werbung", $tablefield);		
 		return $fields;
+	}
+	
+	function sendFrom() {
+		return ($this->SendFrom) ? $this->SendFrom : NewsletterHolder::$newsletterEmail;
 	}
 	
 	function ParentNewsletterCategory() {
@@ -110,71 +93,74 @@ class NewsletterCampaign extends Page {
 	}
 	
 	static function getRenderedNewsletterContent($campaignPage) {
-						// tempfolder
-						$tmpBaseFolder = TEMP_FOLDER . '/newsletter';
-						$tmpFolder = (project()) ? "$tmpBaseFolder/" . project() : "$tmpBaseFolder/site";
-						// if (isset($_REQUEST['flush'])) { }, deactivated
-						Filesystem::removeFolder($tmpFolder);
-						if(!file_exists($tmpFolder)) Filesystem::makeFolder($tmpFolder);
-						$baseFolderName = basename($tmpFolder);
-						//Get site
-						Requirements::clear();
-						// SSViewer::setOption('rewriteHashlinks', false);
-						$link = Director::makeRelative($campaignPage->Link());
-						$response = Director::test($link);
-						$content = $response->getBody();
-						$contentfile = "$tmpFolder/".$campaignPage->URLSegment.".html";
-						//replace img + a tags with custom style
-						if (strlen(trim($campaignPage->ImageStyle))>0) {
-							$content = preg_replace('#(<img(.*)[/]?>)#U', '<img \2 style="'.$campaignPage->ImageStyle.'" />', $content); 
-						}
-						if (strlen(trim($campaignPage->LinkStyle))>0) {
-							$content = preg_replace('#(<a (.*)[/]?>)#U', '<a \2 style="'.$campaignPage->LinkStyle.'" >', $content); 
-						}
-						if (strlen(trim($campaignPage->TableStyle))>0) {
-							$content = preg_replace('#(<table(.*)[/]?>)#U', '<table \2 style="'.$campaignPage->TableStyle.'" >', $content); 
-						}
-						if (strlen(trim($campaignPage->TableCellAttribute))>0) {
-							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 '.$campaignPage->TableCellAttribute.'>', $content); 
-						}
-						if (strlen(trim($campaignPage->TableCellStyle))>0) {
-							$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 style="'.$campaignPage->TableCellStyle.'">', $content); 
-						}
-						if (strlen(trim($campaignPage->HeadingStyle))>0) {
-							$content = preg_replace('#((<h)([0-9].*)[/]?>)#U', '\2\3 style="'.$campaignPage->HeadingStyle.'" >', $content); 
-						}
-						if (strlen(trim($campaignPage->ParagraphStyle))>0) {
-							$content = preg_replace('#(<p(.*)[/]?>)#U', '<p \2 style="'.$campaignPage->ParagraphStyle.'" >', $content); 
-						}
-						if (strlen(trim($campaignPage->HorizontalRuleStyle))>0) {
-							$content = preg_replace('#(<hr (.*)[/]?>)#U', '<img \2 style="'.$campaignPage->HorizontalRuleStyle.'" />', $content); 
-						}
-						if (self::$makeRelativeToAbsoluteURLS) {
-							$base = Director::absoluteBaseURL();
-							// exit($base);
-							$s = $content;
-							$sl = "\'";
-							$s = preg_replace('/(\<.*)(src\=)+([\"'.$sl.']+[http\:\/\/|https\:\/\/]{0})(.*\>)/i',"$1$2$3".$base."$4",$s);
-							$base = Director::protocolAndHost();
-							// exit($base);
-							$s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
-							// $s = preg_replace('/(\<.*)+(href\=[\"'.$sl.'])+(http\:\/\/|https\:\/\/){0}(.*\>)/i',"$1$2$3".$base."$4",$s);
-							$content = $s;
-						}
-						if(!file_exists($contentfile)) {
-							// Write to file
-							if($fh = fopen($contentfile, 'w')) {
-								fwrite($fh, $content);
-								fclose($fh);
-							}
-						}
-						return file_get_contents($contentfile);
+		//set temp folder
+		$tmpBaseFolder = TEMP_FOLDER . '/newsletter';
+		$tmpFolder = (project()) ? "$tmpBaseFolder/" . project() : "$tmpBaseFolder/site";
+		Filesystem::removeFolder($tmpFolder);
+		if(!file_exists($tmpFolder)) Filesystem::makeFolder($tmpFolder);
+		$baseFolderName = basename($tmpFolder);
+		//Get site
+		Requirements::clear();
+		// SSViewer::setOption('rewriteHashlinks', false);
+		$link = Director::makeRelative($campaignPage->Link());
+		$response = Director::test($link);
+		$content = $response->getBody();
+		$contentfile = "$tmpFolder/".$campaignPage->URLSegment.".html";
+		//replace img + a tags with custom style
+		if (strlen(trim($campaignPage->ImageStyle))>0) {
+			$content = preg_replace('#(<img(.*)[/]?>)#U', '<img \2 style="'.$campaignPage->ImageStyle.'" />', $content); 
+		}
+		if (strlen(trim($campaignPage->LinkStyle))>0) {
+			$content = preg_replace('#(<a (.*)[/]?>)#U', '<a \2 style="'.$campaignPage->LinkStyle.'" >', $content); 
+		}
+		if (strlen(trim($campaignPage->TableStyle))>0) {
+			$content = preg_replace('#(<table(.*)[/]?>)#U', '<table \2 style="'.$campaignPage->TableStyle.'" >', $content); 
+		}
+		if (strlen(trim($campaignPage->TableCellAttribute))>0) {
+			$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 '.$campaignPage->TableCellAttribute.'>', $content); 
+		}
+		if (strlen(trim($campaignPage->TableCellStyle))>0) {
+			$content = preg_replace('#(<td(.*)[/]?>)#U', '<td \2 style="'.$campaignPage->TableCellStyle.'">', $content); 
+		}
+		if (strlen(trim($campaignPage->HeadingStyle))>0) {
+			$content = preg_replace('#((<h)([0-9].*)[/]?>)#U', '\2\3 style="'.$campaignPage->HeadingStyle.'" >', $content); 
+		}
+		if (strlen(trim($campaignPage->ParagraphStyle))>0) {
+			$content = preg_replace('#(<p(.*)[/]?>)#U', '<p \2 style="'.$campaignPage->ParagraphStyle.'" >', $content); 
+		}
+		if (strlen(trim($campaignPage->HorizontalRuleStyle))>0) {
+			$content = preg_replace('#(<hr (.*)[/]?>)#U', '<img \2 style="'.$campaignPage->HorizontalRuleStyle.'" />', $content); 
+		}
+		if (self::$makeRelativeToAbsoluteURLS) {
+			$base = Director::absoluteBaseURL();
+			// exit($base);
+			$s = $content;
+			$sl = "\'";
+			$s = preg_replace('/(\<.*)(src\=)+([\"'.$sl.']+[http\:\/\/|https\:\/\/]{0})(.*\>)/i',"$1$2$3".$base."$4",$s);
+			$base = Director::protocolAndHost();
+$s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
+			$content = $s;
+		}
+		if(!file_exists($contentfile)) {
+			// Write to file
+			if($fh = fopen($contentfile, 'w')) {
+				fwrite($fh, $content);
+				fclose($fh);
+			}
+		}
+		return file_get_contents($contentfile);
 	}
 	
 	function onBeforeWrite() {
 		//strip .ss extension, if typed for filename
 		if ($this->TemplateFilename) $this->TemplateFilename = preg_replace("/(.*)(\.ss)/i","$1",$this->TemplateFilename);
+		//only save email, when valid
+		if (!self::isValidEmail($this->SendFrom)) $this->SendFrom = null;
 		return parent::onBeforeWrite();
+	}
+	
+	static function isValidEmail($email) {
+		return eregi("^[[:alnum:]][a-z0-9_.-]*@[a-z0-9.-]+\.[a-z]{2,4}$", $email);
 	}
 	
 	function sendTo($to,$from=null,$template="EmailTemplate") {
@@ -191,6 +177,9 @@ class NewsletterCampaign extends Page {
 		}
 	}
 	
+	function subscribers() {
+		return DataObject::get("NewsletterMember","NewsletterCategoryID = ".$this->NewsletterCategoryID." AND Confirm=''");
+	}
 	
 }
 
@@ -245,7 +234,7 @@ class NewsletterCampaign_Controller extends ContentController {
 		$fields = new FieldSet(
 			new EmailField("Email")
 		);
-		$actions = new FieldSet(new FormAction("send_to", _t("NEWSLETTER.SEND_TEST_TO","Testverand")));
+		$actions = new FieldSet(new FormAction("send_to", _t("Newsletter.Campaign.SendTestTo","Send testmail to")));
 		$form = new Form($this, "NewsletterNavigatorForm", $fields, $actions);
 		$form->disableSecurityToken();
 		return $form;
@@ -253,8 +242,8 @@ class NewsletterCampaign_Controller extends ContentController {
 	
 	function send_to($data) {
 		$email = $_REQUEST['email'];
-		if(!eregi("^[[:alnum:]][a-z0-9_.-]*@[a-z0-9.-]+\.[a-z]{2,4}$", $email)) {
-			echo "Eine gültige eMail-Adresse angegeben!";
+		if (!NewsletterCampaign::isValidEmail($email)) {
+			echo("Please choose a valid eMail!");
 			exit();
 		}
 		$this->dataRecord->sendTo($email);

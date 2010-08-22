@@ -2,7 +2,7 @@
 	position: absolute;
 	top: 10px;
 	left: 10px;
-	width: 200px;
+	width: 300px;
 	background: #000;
 	color: #fff;
 	font-family: 'Lucida Grande','Lucida Sans Unicode', Arial;
@@ -17,9 +17,6 @@
 }
 #NewsletterNavigator .middleColumn {
 	position: absolute;
-}
-#Form_NewsletterNavigatorForm_action_send_to {
-/*	float: right;*/
 }
 #NewsletterNaviMessage {
 	margin-top: 3em;

@@ -11,35 +11,31 @@ class NewsletterHolder extends SiteTree {
 		"ConfirmMessage"=>"HTMLText",
 		"ConfirmMessageTitke"=>"Varchar(200)",
 		"UnsubscribeMessage"=>"HTMLText",
-		"ReturnAddress"=>"Varchar(200)",
+		"SendFrom"=>"Varchar(200)",
 		);
-		
-	// static $allowed_children = array(
-		// "NewsletterCategory",
-		// "NewsletterCampaign",
-		// );
 	
 	static $has_many = array(
 		"Blacklist"=>"NewsletterBlacklist"
-		);
+	);
 		
 	static $field_labels = array(
-			"ReturnAddress"=>"Absender eMail (z.B. newsletter@example.com)",
-			"ConfirmMessageTitle"=>"Betreff des Bestätigungsnachricht",
-			"ConfirmMessage"=>"Bestätigungsnachricht",
-			"UnsubscribeMessage"=>"Abmeldungsnachricht",
-		);
+		"SendFrom"=>"Absender eMail (z.B. newsletter@example.com)",
+		"ConfirmMessageTitle"=>"Betreff des Bestätigungsnachricht",
+		"ConfirmMessage"=>"Bestätigungsnachricht",
+		"UnsubscribeMessage"=>"Abmeldungsnachricht",
+	);
 	
 	static $newsletterEmail = "newsletter@hd-healthsystem.com";
 	
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
 		$fields->addFieldsToTab('Root.Content.Newsletter',array(
-			new EmailField('ReturnAddress',self::$field_labels['ReturnAddress']),
+			new EmailField('SendFrom',_t("Newsletter.CMS.SendFrom","Send From")),
 			new LiteralField('ConfirmLegend','
 			<h4>Placeholders:</h4>
 			<p>%FIRSTNAME%</p>
 			<p>%SURNAME%</p>
+			<p>%GENDER%</p>
 			<p>%NEWSLETTER_TITLE%</p>
 			<p>%NEWSLETTER_DESCRIPTION%</p>
 			<p>%CONFIRM_URL%</p>
@@ -51,8 +47,8 @@ class NewsletterHolder extends SiteTree {
 		return $fields;
 	}
 	
-	function getManagedReturnAddress() {
-		return $this->ReturnAddress ? $this->ReturnAddress : self::$newsletterEmail;
+	function sendFrom() {
+		return $this->SendFrom ? $this->SendFrom : self::$newsletterEmail;
 	}
 	
 }
@@ -65,9 +61,8 @@ class NewsletterHolder_Controller extends Page_Controller {
 		"confirm",
 		"send"=>"EDIT_NEWSLETTER",
 		"admin"=>"EDIT_NEWSLETTER",
-		"import_defaults"=>"EDIT_NEWSLETTER",
+		"ImportDefaultsForm"=>"EDIT_NEWSLETTER",
 		"edit_recievers"=>"EDIT_NEWSLETTER",
-		"delete_all"=>"EDIT_NEWSLETTER",
 		"RecieverForm"=>"EDIT_NEWSLETTER",
 		"NewsletterSignupForm",
 		);
@@ -75,7 +70,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 	function init() {
 		parent::init();
 	}
-
+	
 	function UrlID() {
 		return Director::urlParam("ID");
 	}
@@ -86,24 +81,26 @@ class NewsletterHolder_Controller extends Page_Controller {
 	
 	function confirm() {
 		// ?hash={$hash}&email={$email}
+		if (!((isset($_REQUEST['hash'])) && (isset($_REQUEST['email'])))) return array(); 
 		$hash = trim(Convert::Raw2SQL($_REQUEST['hash']));
 		$email = trim(Convert::Raw2SQL($_REQUEST['email']));
+		$this->ConfirmSuccessfull = false;
 		if ((strlen($email)>0) && (strlen($hash)>0)) {
 			if ($member = DataObject::get_one("NewsletterMember","Hash LIKE '{$hash}' AND Confirm LIKE '{$email}'")) {
 				$member->Email = $email;
 				$member->Hash = $hash;
 				$member->Confirm = "";
 				$member->write();
+				$this->ConfirmSuccessfull = true;
+				$this->Member = $member;
 				$this->Title = "Vielen Dank";
 				$this->Content = "<p>Vielen Dank, dass Sie sich für unseren Newsletter eingetragen haben.</p>";
 				$others = DataObject::get("NewsletterMember","Confirm LIKE '{$email}' AND NewsletterCategoryID = ".$member->NewsletterCategoryID);
 								foreach ($others as $o) $o->delete();
 			} else {
-				$this->Title = "Fehler";
-				$this->Content = "<p>Die angegeben Daten stimme nicht.</p>";
+				$this->ConfirmSuccessfull = true;
+				$this->Title = "Error";
 			}
-		} else {
-			$this->Content = "<p>Es muss eine eMail und ein passender Hash angefordert werden.</p>";
 		}
 		return array();
 	}
@@ -141,32 +138,31 @@ class NewsletterHolder_Controller extends Page_Controller {
 	}
 		
 	function signup() {
-		$this->Title = "Für einen Newsletter anmelden";
+		$this->Newsletter = null;
 		if ($nl=DataObject::get("NewsletterCategory")) {
 			if ($nl->Count()==1) {
 				$nl=DataObject::get_one("NewsletterCategory");
 				$newsletter = new HiddenField("NewsletterCategoryID","NewsletterCategoryID",$nl->ID);
-				$this->Content .= "Sie melden sich für folgenden Newsletter an:<h3>".$nl->Description."</h3>";
+				$this->Newsletter = $nl;
 			} else {
-					$this->Content = "Wählen Sie einen Newsletter aus, für den Sie sich anmelden möchten";
 					$newsletter = $nl->toDropdownMap('ID', 'Title', 'Bitte Newsletter auswählen', true);
 					$newsletter = new DropdownField('NewsletterCategoryID', 'Newsletter', $newsletter);
 			}
 		} else {
-			$this->Content = "Es sind keine Newsletter zum anmelden vorhanden.";
-			return array();
+			//No newsletter to signup for
 		}
 		$fields = new FieldSet(
-				new EmailField("Email","<strong>".NewsletterMember::$field_names['Email']."</strong>"),
-				new TextField("FirstName",NewsletterMember::$field_names['FirstName']),
-				new TextField("Surname",NewsletterMember::$field_names['Surname']),
+				new EmailField("Email","<strong>"._t("Newsletter.Email","eMail")."</strong>"),
+				new TextField("FirstName",_t("Newsletter.Member.FirstName","Firstname")),
+				new TextField("Surname",_t("Newsletter.Member.Surname","Surname")),
+				new TextField("Gender",_t("Newsletter.Member.Gender","Gender")),
 				$newsletter
 			);
-		$this->MetaDescription = new Form(
+		$this->Form = new Form(
 			$this,
 			"NewsletterSignupForm",
 			$fields,
-			new FormAction("ProceedSignup", "Eintragen"),
+			new FieldSet(new FormAction("ProceedSignup", "Eintragen")),
 			new RequiredFields(
 				"Email", "FirstName", "Surname"
 			)
@@ -178,19 +174,14 @@ class NewsletterHolder_Controller extends Page_Controller {
 		$email =  Convert::Raw2SQL($data['Email']);
 		$firstName = Convert::Raw2SQL($data['FirstName']);
 		$surname = Convert::Raw2SQL($data['Surname']);
+		$gender = Convert::Raw2SQL($data['Gender']);
 		$id = (int) $data['NewsletterCategoryID'];
 		$newsletterCategory = DataObject::get_by_id("NewsletterCategory",(int) $id);
 		$sql = "Email LIKE '{$email}' AND NewsletterCategoryID = ".$id;
 		if ($m = DataObject::get("NewsletterMember", $sql)) {
-			$this->Title = "Anmeldung bereits erfolgt";
-			$this->Content = "
-			<p>Sie sind bereits für diesen Newsletter eingetragen.</p>
-			<p>Wenn Sie sich für den Newsletter abmelden möchten, benutzen Sie bitte den Abbestellungslink, der in jeder eMail in der Fußzeile steht.</p>
-			";
-			return array();
+			$this->AlreadySignedUp = true;
 		} else {
 			$newsletterPage = DataObject::get_one("NewsletterHolder");
-			
 			$n = new NewsletterMember();
 			$hash = $n->Hash = substr(md5(time().rand(0,10000).$email),0,8);
 			$n->Email = "";
@@ -226,18 +217,17 @@ class NewsletterHolder_Controller extends Page_Controller {
 			$content = preg_replace($searches,$replaces,$content);
 			$title = preg_replace($searches,$replaces,$newsletterPage->ConfirmMessageTitle);
 			
-			$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->getManagedReturnAddress(), $email, $title, $content);
+			$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->sendFrom(), $email, $title, $content);
 			if ($emailMessage->send()) {
-				$this->Content = "
-				<p>Es wurde eine Bestätigungsmail an <strong>{$email}</strong> gesendet.</p>
-				";
+				$this->ConfirmMailSended = true;
+				$this->Email = $email;
 			}
 		}
 		return array();
 	}
 	
 	function URL() {
-		return "newsletter";
+		return $this->URLSegment;
 	}
 	
 	function SendLink($send=10) {
@@ -257,18 +247,17 @@ class NewsletterHolder_Controller extends Page_Controller {
 		
 	function send() {
 		if (!$this->isAjax()) echo "<h2>send() only via ajax-request</h2>Security issue...";
-		$this->Title = "Newsletter verschicken";
 		$id = (int) Director::urlParam("ID");
 		$count = (int) Director::urlParam("OtherID");
 		if(!(($id>0) && ($count>0))) exit('<h2>Syntax</h2>'.$this->URL().'/send/$newsletter_campaign_id/$numbers_of_sendings_per_request/');
 		if ($camp = DataObject::get_by_id("NewsletterCampaign",$id)) {
 			$newsletterCategory = DataObject::get_by_id("NewsletterCategory",$camp->NewsletterCategoryID);
 			if ($recievers = DataObject::get("NewsletterReciever", "NewsletterID = {$id} AND Send = 0")) {
-
 				if ($content=NewsletterCampaign::getRenderedNewsletterContent($camp)) {
 					//send emails
 					$i=0;
 					foreach ($recievers as $r) {
+						//send only, if sended items of this session are smaller than given in the url
 						if ($i<$count) {
 							$mailContent= $content;
 							$mailContent = str_replace("%FIRSTNAME%",$r->FirstName, $mailContent);
@@ -281,7 +270,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 									$r->write();
 									//do not send
 								} else {
-									$email = new Email(DataObject::get_one("NewsletterHolder")->getManagedReturnAddress(), $r->Email, $camp->Title, $mailContent);
+									$email = new Email($camp->sendFrom(), $r->Email, $camp->Title, $mailContent);
 									if ($email->send()) {
 										$r->Send = 1;
 										$r->write();
@@ -292,51 +281,77 @@ class NewsletterHolder_Controller extends Page_Controller {
 						
 					}
 					exit($i."");
-					// $this->Content = $i." " ._t("NEWSLETTER.WERE_SENDED","Newsletter wurden verschickt.");
-					// return array();
 				}
 				
 			} else {
 				
 			}
 		} else {
-			$this->Content = "Sie haben keine gültige Newsletterversendung ausgewählt...";
+			//no id selected
 		}
 		return array();
 	}
 	
-	function import_defaults() {
+	function ImportDefaultsForm() {
+		return new Form(
+			$this,
+			"ImportDefaultsForm",
+			new Fieldset(
+				new HiddenField("ID", "ID", Director::urlParam("ID"))
+			),
+			new FieldSet(
+				new FormAction('doSubmitImportDefaults', _t("Newsletter.Admim.DoImportDefaults","Do import"))
+			),
+			new RequiredFields('ID')
+		);
+	}
+	
+	function doSubmitImportDefaults($data, $form) {
 		//import all subscribers into reciever list
-		if ($id = Director::urlParam("ID")) {
+		if ($id = $data['ID']) {
 			if ($c = DataObject::get_by_id("NewsletterCampaign", (int) $id)) {
-				$recievers = DataObject::get("NewsletterReciever","NewsletterID = ".(int) $id);
-				$subscribers = DataObject::get("NewsletterMember","NewsletterCategoryID = ".(int) $c->NewsletterCategoryID);
+				$recievers = $c->Recievers();
+				$subscribers = $c->Subscribers();
 				$i=0;
 				foreach ($subscribers as $s) {
 					//check for duplicates
-					if (!$recievers->find('Email', $s->Email)) {
+					if ((!$recievers->find('Email', $s->Email)) && ($s->Email)) {
 						$r = new NewsletterReciever();
 						$r->Email = $s->Email;
 						$r->FirstName = $s->FirstName;
+						$r->Gender = $s->Gender;
 						$r->Surname = $s->Surname;
 						$r->NewsletterID = $id;
 						$r->write();
 						$i++;
-					}//$recievers->push($s);
+					}
 				}
-				$this->Title = "Aboadressen reinladen";
-				$this->Content = "Insg. {$i} Adressen reingeladen...";
-				// Debug::show($recievers);
+				$form->sessionMessage(
+					sprintf(_t("Newsletter.Admin.ImportDefaults","Imported %s adresses..."),$i),
+					'good'
+				);
 			}
-		} else {
-			$this->Title = "Error";
-			$this->Content = "Es ist keine gültige Newsletter Aktion ausgewählt...";
+	      	Director::redirectBack();
 		}
 		return array();
 	}
 	
-	function delete_all() {
-		if ($id = Director::urlParam("ID")) {
+	function DeleteForm() {
+		return new Form(
+			$this,
+			"ImportDefaultsForm",
+			new Fieldset(
+				new HiddenField("ID", "ID", Director::urlParam("ID"))
+			),
+			new FieldSet(
+				new FormAction('doSubmitDeleteForm', _t("Newsletter.Admim.DoDeleteAllRecievers","Delete all"))
+			),
+			new RequiredFields('ID')
+		);
+	}
+	
+	function doSubmitDeleteForm($data,$form) {
+		if ($id = $data['ID']) {
 			if ($c = DataObject::get_by_id("NewsletterCampaign", (int) $id)) {
 				$recievers = DataObject::get("NewsletterReciever","NewsletterID = ".(int) $id);
 				$i=0;
@@ -344,44 +359,41 @@ class NewsletterHolder_Controller extends Page_Controller {
 					$r->delete();
 					$i++;
 				}
-				$this->Title = "Empfänger löschen";
-				$this->Content = "Insg. {$i} Empfänger gelöscht...";
+				$form->sessionMessage(
+					sprintf(_t("Newsletter.Admin.DeleteAllRecievers","%s recievers deleted..."),$i),
+					'good'
+				);
 			}
 		} else {
-			$this->Title = "Error";
-			$this->Content = "Es ist keine gültige Newsletter Aktion ausgewählt...";
+			$form->sessionMessage(
+				_t("Newsletter.Admin.NoRecordSelected","No valid record selected..."),
+				'bad'
+			);
 		}
-		return array();
+		Director::redirectBack();
 	}
 	
 	function edit_recievers() {
-		if ($id = Director::urlParam("ID")) {
-			if ($c = DataObject::get_by_id("NewsletterCampaign", (int) $id)) {
-				$this->Recievers = DataObject::get("NewsletterReciever","NewsletterID = ".(int) $id);
-				$this->Subscribers = DataObject::get("NewsletterMember","NewsletterCategoryID = ".(int) $c->NewsletterCategoryID);
-				$fields = new FieldSet(
-						new TextareaField("Text","Adressenliste",10),
-						new HiddenField("ID","ID",$id)
-					);
-				$this->Content = new Form(
-					$this,
-					"RecieverForm",
-					$fields,
-					new FieldSet(new FormAction("ProceedRecieverForm", "Hinzufügen")),
-					new RequiredFields(
-						"Text"
-					)
-				);
-			} else {
-				$this->Content = "Kein gültiger Datensatz ausgewählt";
-			}
-		} else {
-			$this->Content = "Es muss eine Newsletteraktion gewählt werden!";
-		}
+		if (!$id = Director::urlParam("ID")) user_error("Please choose an ID");
 		return array();
 	}
 	
-	function RecieverForm($data) {
+	function RecieverForm() {
+		return new Form(
+			$this,
+			"RecieverForm",
+			$fields = new FieldSet(
+				new TextareaField("Text","Adressenliste",10),
+				new HiddenField("ID","ID",$this->UrlID())
+			),
+			new FieldSet(new FormAction("doSubmitRecieverForm", "Hinzufügen")),
+			new RequiredFields(
+				"Text"
+			)
+		);
+	}
+	
+	function doSubmitRecieverForm($data,$form) {
 		$text = $data['Text'];
 		$text = str_replace(",",";",$text);
 		$text = str_replace(";;","; ;",$text);
@@ -431,9 +443,12 @@ class NewsletterHolder_Controller extends Page_Controller {
 					}
 				}
 			}
-			$this->Content = $str."<p>{$i} neu eingetragen</p>";
-			return array();
+			$form->sessionMessage(
+				$str."<p>{$i} neu eingetragen</p>",
+				'good'
+			);
 		}
+      	Director::redirectBack();
 	}
 
 }

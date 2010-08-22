@@ -1,12 +1,12 @@
 <% require JavaScript(newsletter/javascript/jquery.js) %> 
 <% require JavaScript(newsletter/javascript/newsletteradmin.js) %>
-<% require ThemedCss(newsletteradmin) %>
+<% require ThemedCSS(newsletteradmin) %>
 
 <h4><a href="$SelectedNewsletterCampaign.Link"> Newsletter ansehen</a></h4>
 
 $Content
 $Form
-
+$RecieverForm
 
 <h2>Empfänger hinzufügen</h2>
 <div>
@@ -17,45 +17,29 @@ $Form
 	<h4>Beispiel</h4>
 	<p>max;mustermann;m;max@mustermann.com</p>
 </div>
-
-<style type="text/css">
-.userStatus1 {
-	color: #2B9100;
-}
-.userStatus0 {
-	color: #E52020;
-}
-.userStatus2 {
-	color: #AAA;
-}
-table.recieverList {
-	margin: 20px 0px;
-}
-table.recieverList td {
-	background: #ddd;
-	padding: 2px 5px;
-}
-</style>
-
 <table class="recieverList">
 	<tr><td><strong>Email</strong></td><td>Geschlecht&nbsp;</td><td>Vorname&nbsp;&nbsp;</td><td>Nachname</td></tr>
-<% control Recievers %>
+<% control SelectedNewsletterCampaign.Recievers %>
 	<tr><td class="userStatus{$Send}"><strong>$Email</strong></td><td>$Gender</td><td>$FirstName</td><td>$Surname</td></tr>
 <% end_control %>
 	<tr><td colspan="4"><h4>Abonierte Adressen (noch nicht unbed. eingetragen)</h4></td></tr>
-<% control Subscribers %>
+<% control SelectedNewsletterCampaign.Subscribers %>
 	<tr><td class="userStatus{$Send}"><strong>$Email</strong></td><td>$Gender</td><td>$FirstName</td><td>$Surname</td></tr>
 <% end_control %>
 </table>
 
-<p><a href="$URL/delete_all/$UrlID">Alle $Recievers.Count Empfänger löschen</a></p>
+<p>
+<h3>Alle $Recievers.Count Empfänger löschen</h3>
+$DeleteForm
+
+</p>
 
 
 
 <br/>
 <h4>$Recievers.Count Empfänger eingetragen</h4>
 <h4>$Subscribers.Count Abonomenten gefunden</h4>
-<p><a href="$URL/import_defaults/$UrlID">Alle $Subscribers.Count Aboadressen reinladen</a></p>
+<p>$ImportDefaultsForm</p>
 <br/>
 <h4>Newsletter an $Recievers.Count Empfänger verschicken</h4>
 <br/>
