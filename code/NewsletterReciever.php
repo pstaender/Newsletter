@@ -5,7 +5,7 @@ class NewsletterReciever extends DataObject {
 	static $db = array(
 		"FirstName"=>"Varchar(100)",
 		"Surname"=>"Varchar(100)",
-		"Gender"=>"Enum('m,f,-','-')",
+		"Gender"=>"Enum('-,m,f','-')",
 		"Email"=>"Varchar(250)",
 		"Send"=>"Int",
 		);
@@ -15,18 +15,17 @@ class NewsletterReciever extends DataObject {
 		"Newsletter"=>"NewsletterCampaign",
 		);
 		
-	static $field_names = array(
-		'FirstName' => 'Vorname',
-		'Surname' => 'Nachame',
-		'Email' => 'eMail-Adresse',
-		);
-		
 	static $field_types = array(
 		'Email' => 'EmailField',
 		'FirstName' => 'TextField',
 		'Surname' => 'TextField',
 		'Send' => 'CheckboxField',
 	);
+	
+	static $summary_fields = array(
+		"Email","Send","FirstName","Surname","Newsletter.Title"
+		);
+	
 	
 	static $belongs_to = array(
 		'Newsletter' => 'NewsletterCampaign'
@@ -46,8 +45,8 @@ class NewsletterReciever extends DataObject {
 	}
 	
 	function salutation() {
-		if ($this->Gender=="m") return "Mr.";
-		if ($this->Gender=="f") return "Mrs.";
+		if ($this->Gender=="m") return _t("Newsletter.Gender.Male","Mr.");
+		if ($this->Gender=="f") return _t("Newsletter.Gender.Female","Mrs.");
 	}
 	
 }

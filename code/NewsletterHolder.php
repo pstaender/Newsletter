@@ -1,48 +1,31 @@
 <?php
 /**
  * Newsletter Holder
- * Verwaltet die Newsletter
+ * Is a config page in sitetree, to manage all newsletter campaigns
+ * should have the urlsegment "newsletter"
  *
- * @author Philipp Staender
+ * @author Philipp Staender <philipp.staender@gmail.com>
  */
 class NewsletterHolder extends SiteTree {
 	
 	static $db = array(
-		"ConfirmMessage"=>"HTMLText",
-		"ConfirmMessageTitke"=>"Varchar(200)",
-		"UnsubscribeMessage"=>"HTMLText",
 		"SendFrom"=>"Varchar(200)",
+		"EmailBodyTemplate"=>"Varchar(100)",
 		);
 	
 	static $has_many = array(
 		"Blacklist"=>"NewsletterBlacklist"
 	);
 		
-	static $field_labels = array(
-		"SendFrom"=>"Absender eMail (z.B. newsletter@example.com)",
-		"ConfirmMessageTitle"=>"Betreff des Bestätigungsnachricht",
-		"ConfirmMessage"=>"Bestätigungsnachricht",
-		"UnsubscribeMessage"=>"Abmeldungsnachricht",
-	);
-	
-	static $newsletterEmail = "newsletter@hd-healthsystem.com";
+	static $newsletterEmail = "admin@127.0.0.1";
+	static $emailBodyTemplate = null;
+	static $signupRequiredFields = array("Email");
 	
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
-		$fields->addFieldsToTab('Root.Content.Newsletter',array(
-			new EmailField('SendFrom',_t("Newsletter.CMS.SendFrom","Send From")),
-			new LiteralField('ConfirmLegend','
-			<h4>Placeholders:</h4>
-			<p>%FIRSTNAME%</p>
-			<p>%SURNAME%</p>
-			<p>%GENDER%</p>
-			<p>%NEWSLETTER_TITLE%</p>
-			<p>%NEWSLETTER_DESCRIPTION%</p>
-			<p>%CONFIRM_URL%</p>
-			'),
-			new TextField('ConfirmMessageTitle',self::$field_labels['ConfirmMessageTitle']),
-			new HtmlEditorField('ConfirmMessage',self::$field_labels['ConfirmMessage']),
-			new HtmlEditorField('UnsubscribeMessage',self::$field_labels['UnsubscribeMessage']),
+		$fields->addFieldsToTab('Root.Content.Newsletters',array(
+			new EmailField("SendFrom",_t("Newsletter.Admin.SendFrom","Send from (eMail-Adress)")),
+			new TextField("EmailBodyTemplate", _t("Newsletter.Admin.EmailBodyTemplate", "Use a custom eMail body template"))
 			));
 		return $fields;
 	}
@@ -50,6 +33,44 @@ class NewsletterHolder extends SiteTree {
 	function sendFrom() {
 		return $this->SendFrom ? $this->SendFrom : self::$newsletterEmail;
 	}
+	
+	function onBeforeWrite() {
+		if ($this->EmailBodyTemplate) $this->EmailBodyTemplate = self::stripSSFromFilename($this->EmailBodyTemplate);
+		return parent::onBeforeWrite();
+	}
+	
+	function customEmailBodyTemplate() {
+		if ($this->EmailBodyTemplate) return $this->EmailBodyTemplate;
+		return null;
+	}
+	
+	static function cleanupSignups($olderThanInSecs=604800) {
+		$timeLimit = time()-$olderThanInSecs;
+		$timeLimit = date("Y-m-d H:i:s",$timeLimit);
+		$members = DataObject::get("NewsletterMember","Confirm LIKE '%@%' AND LastEdited < '".$timeLimit."'");
+		$i=0;
+		foreach ($members as $m) {
+			$m->delete();
+			$i++;
+		}
+		// exit($timeLimit."");
+		return $i;
+	}
+	
+	function requireDefaultRecords() {
+		parent::requireDefaultRecords();
+		if($this->class == 'NewsletterHolder') {
+			if(!DataObject::get($this->class)) {
+				$n = new NewsletterHolder();
+				$n->Title = "Newsletter";
+				$n->URLSegment = "newsletter";
+				$n->SendFrom = self::$newsletterEmail;
+				$n->write();
+				Database::alteration_message("newsletter holder created","created");		
+			}
+		}
+	}
+	
 	
 }
 
@@ -64,11 +85,12 @@ class NewsletterHolder_Controller extends Page_Controller {
 		"ImportDefaultsForm"=>"EDIT_NEWSLETTER",
 		"edit_recievers"=>"EDIT_NEWSLETTER",
 		"RecieverForm"=>"EDIT_NEWSLETTER",
-		"NewsletterSignupForm",
+		"SignupForm",
 		);
 	
 	function init() {
 		parent::init();
+		NewsletterHolder::cleanupSignups(600);
 	}
 	
 	function UrlID() {
@@ -136,42 +158,42 @@ class NewsletterHolder_Controller extends Page_Controller {
 		$this->Content = "Sie erhalten in jedem Newsletter einen individuellen abmelde Link.";
 		return array();
 	}
-		
-	function signup() {
-		$this->Newsletter = null;
-		if ($nl=DataObject::get("NewsletterCategory")) {
-			if ($nl->Count()==1) {
-				$nl=DataObject::get_one("NewsletterCategory");
-				$newsletter = new HiddenField("NewsletterCategoryID","NewsletterCategoryID",$nl->ID);
-				$this->Newsletter = $nl;
-			} else {
-					$newsletter = $nl->toDropdownMap('ID', 'Title', 'Bitte Newsletter auswählen', true);
-					$newsletter = new DropdownField('NewsletterCategoryID', 'Newsletter', $newsletter);
-			}
-		} else {
-			//No newsletter to signup for
+	
+	function selectedNewsletterCategory() {
+		if (Director::urlParam("ID")) return DataObject::get_by_id("NewsletterCategory",(int) Director::urlParam("ID"));
+		return DataObject::get("NewsletterCategory");
+	}
+	
+	function SignupForm() {
+		$n = $this->selectedNewsletterCategory();
+		if ($n->ClassName!='NewsletterCategory') $newsletter = new DropdownField("NewsletterCategoryID","Newsletter",$n->toDropdownMap('ID', 'Title', 'Bitte Newsletter auswählen', true));
+		else $newsletter = new HiddenField("NewsletterCategoryID","NewsletterCategoryID",$n->ID);
+		$g = singleton('NewsletterMember')->dbObject('Gender')->enumValues();
+		$gender = array();
+		foreach ($g as $value => $field) {
+			$gender[$field]=_t("Newsletter.Gender.$value",$value);
 		}
 		$fields = new FieldSet(
 				new EmailField("Email","<strong>"._t("Newsletter.Email","eMail")."</strong>"),
 				new TextField("FirstName",_t("Newsletter.Member.FirstName","Firstname")),
 				new TextField("Surname",_t("Newsletter.Member.Surname","Surname")),
-				new TextField("Gender",_t("Newsletter.Member.Gender","Gender")),
+				new DropdownField("Gender",_t("Newsletter.Member.Salutation","Salutation"),$gender),
 				$newsletter
 			);
-		$this->Form = new Form(
+		return new Form(
 			$this,
-			"NewsletterSignupForm",
+			"SignupForm",
 			$fields,
-			new FieldSet(new FormAction("ProceedSignup", "Eintragen")),
+			new FieldSet(new FormAction("doSubmitSignupForm", "Eintragen")),
 			new RequiredFields(
-				"Email", "FirstName", "Surname"
+				NewsletterHolder::$signupRequiredFields
 			)
 		);
-		return array();
 	}
 	
-	function NewsletterSignupForm($data) {
+	function doSubmitSignupForm($data,$form) {
 		$email =  Convert::Raw2SQL($data['Email']);
+		// exit($email);
 		$firstName = Convert::Raw2SQL($data['FirstName']);
 		$surname = Convert::Raw2SQL($data['Surname']);
 		$gender = Convert::Raw2SQL($data['Gender']);
@@ -181,6 +203,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 		if ($m = DataObject::get("NewsletterMember", $sql)) {
 			$this->AlreadySignedUp = true;
 		} else {
+			$this->ConfirmMailSended = true;
 			$newsletterPage = DataObject::get_one("NewsletterHolder");
 			$n = new NewsletterMember();
 			$hash = $n->Hash = substr(md5(time().rand(0,10000).$email),0,8);
@@ -188,40 +211,24 @@ class NewsletterHolder_Controller extends Page_Controller {
 			$n->Confirm = $email;
 			$n->Surname = $surname;
 			$n->FirstName = $firstName;
+			$n->Gender = $gender;
 			$n->NewsletterCategoryID = $id;
 			$n->write();
+			$this->Member = $n;
 			if ($m = DataObject::get("NewsletterBlacklist",$sql)) {
 				foreach($m as $mm) $mm->delete();
 			}
-			
-			$content = $newsletterPage->ConfirmMessage;
-			
-			$searches = array(
-				'/%FIRSTNAME%/',
-				'/%SURNAME%/',
-				'/%EMAIL%/',
-				'/%CONFIRM_URL%/',
-				'/%NEWSLETTER_TITLE%/',
-				'/%NEWSLETTER_DESCRIPTION%/',
-				);
-				
-			$replaces = array(
-				$firstName,
-				$surname,
-				$email,
-				Director::baseURL().$newsletterPage->URLSegment."/confirm/?hash={$hash}&email={$email}",
-				$newsletterCategory->Title,
-				$newsletterCategory->Description,
-				);
-			
-			$content = preg_replace($searches,$replaces,$content);
-			$title = preg_replace($searches,$replaces,$newsletterPage->ConfirmMessageTitle);
-			
-			$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->sendFrom(), $email, $title, $content);
-			if ($emailMessage->send()) {
-				$this->ConfirmMailSended = true;
-				$this->Email = $email;
-			}
+			$this->Title = $title = _t("Newsletter.Mail.SignupTitle", "Thanks for you signup for our newlsetter");
+			$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->sendFrom(), $email, $title);
+			$emailMessage->setTemplate('NewsletterMail_SignupMessage');
+			$emailMessage->populateTemplate(array(
+				"Member" => $n,
+				"ConfirmURL" => $url = $newsletterPage->URLSegment."/confirm/?hash={$hash}&email={$email}",
+				"ConfirmLink" => '<a href="'.ViewableData::baseHref().$url.'">'.ViewableData::baseHref().$url.'</a>',
+				"Newsletter" => $newsletterCategory,
+				"NewsletterCategory" => $newsletterCategory
+				));
+			$emailMessage->send();
 		}
 		return array();
 	}

@@ -1,5 +1,5 @@
 <h1>Newsletter Signup</h1>
 
-$Newsletter.Description 
+$SelectedNewsletterCategory.Description 
 
-$Form
+$SignupForm

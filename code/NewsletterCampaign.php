@@ -18,6 +18,7 @@ class NewsletterCampaign extends Page {
 		"TableStyle"=>"Varchar(250)",
 		"TableCellAttribute"=>"Varchar(250)",
 		"TableCellStyle"=>"Varchar(250)",
+		"EmailBodyTemplate"=>"Varchar(100)",
 		);
 		
 	static $has_one = array(
@@ -35,7 +36,7 @@ class NewsletterCampaign extends Page {
 		$categories = DataObject::get("NewsletterCategory");
 		$fields->addFieldsToTab('Root.Content.Newsletter', array(
 			new TextField("Name"),
-			new TextField("SendFrom"),
+			new EmailField("SendFrom"),
 			new TextField("TemplateFilename"),
 			new TextField("BodyStyle"),
 			new TextField("ContentStyle"),
@@ -58,10 +59,10 @@ class NewsletterCampaign extends Page {
 			$name = 'Recievers',
 			'NewsletterReciever',
 			$fieldList = array(
-				'FirstName'=>'Vorname',
-				'Surname'=>'Nachname',
-				'Email'=>'Email',
-				'Send'=>'Gesendet (ja/nein)',
+				'FirstName'=>_t("Newsletter.Member.FirstName","FirstName"),
+				'Surname'=>_t("Newsletter.Member.Surname","Surame"),
+				'Email'=>_t("Newsletter.Member.Email","eMail"),
+				'Send'=>_t("Newsletter.Admin.MailSended","eMail sended (0=no/1=yes)"),
 			),
 			null,
 			$sourceFilter = "NewsletterID = '$this->ID'"
@@ -75,21 +76,51 @@ class NewsletterCampaign extends Page {
 				)
 			);
 		$tablefield->setParentClass(false);
-		$fields->addFieldToTab("Root.Content.Empfaengerliste", $tablefield);
+		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.RecieverList","List of recievers"), $tablefield);
 		return $fields;
 	}
 	
-	function sendFrom() {
-		return ($this->SendFrom) ? $this->SendFrom : NewsletterHolder::$newsletterEmail;
+	function parentHolderPage() {
+		//search three levels max. above
+		$page = null;
+		if ($this->ParentID>0) {
+			$page = $this->Parent();
+			if ($page->ClassName=="NewsletterHolder") return $page;
+			if ($page->ParentID>0) {
+				$page = $page->Parent();
+				if ($page->ClassName=="NewsletterHolder") return $page;
+				if ($page->ParentID>0) {
+					$page = $page->Parent();
+					if ($page->ClassName=="NewsletterHolder") return $page;
+				}
+			}
+		}
+		return $page;
 	}
 	
-	function ParentNewsletterCategory() {
-		$p = $this->Parent();
+	function sendFromParent() {
+		$sendFrom = NewsletterHolder::$newsletterEmail;
+		if ($h=$this->parentHolderPage()) {
+			$sendFrom = $h->sendFrom();
+		}
+		return $sendFrom;
+	}
+	
+	function sendFrom() {
+		return ($this->SendFrom) ? $this->SendFrom : $this->sendFromParent();
+	}
+	
+	function parentNewsletterCategory() {
+		$p = $this->parentHolderPage();
 		if ($p->Class = "NewsletterCategory") return $p;
 	}
 	
 	function renderedNewsletter() {
 		return self::getRenderedNewsletterContent($this);
+	}
+	
+	static function stripSSFromFilename($filename) {
+		return preg_replace("/(.*)(\.ss)/i","$1",$filename);
 	}
 	
 	static function getRenderedNewsletterContent($campaignPage) {
@@ -152,35 +183,44 @@ $s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2
 	}
 	
 	function onBeforeWrite() {
-		//strip .ss extension, if typed for filename
-		if ($this->TemplateFilename) $this->TemplateFilename = preg_replace("/(.*)(\.ss)/i","$1",$this->TemplateFilename);
-		//only save email, when valid
-		if (!self::isValidEmail($this->SendFrom)) $this->SendFrom = null;
+		//strip .ss extension, if used for filenames
+		if ($this->TemplateFilename) $this->TemplateFilename = self::stripSSFromFilename($this->TemplateFilename);
+		if ($this->EmailBodyTemplate) $this->EmailBodyTemplate = self::stripSSFromFilename($this->EmailBodyTemplate);
 		return parent::onBeforeWrite();
 	}
 	
+	//Not in use
 	static function isValidEmail($email) {
 		return eregi("^[[:alnum:]][a-z0-9_.-]*@[a-z0-9.-]+\.[a-z]{2,4}$", $email);
 	}
 	
-	function sendTo($to,$from=null,$template="EmailTemplate") {
-		if ($from==null) $from = NewsletterHolder::$newsletterEmail;
+	function sendTo($to,$from=null) {
+		if ($from==null) $from = $this->sendFrom();
 		if (Permission::check("EDIT_NEWSLETTER")) {
 			$content = $this->renderedNewsletter();
-			$emailMessage = new Email(NewsletterHolder::$newsletterEmail, $to, $this->Title);
+			$emailMessage = new Email($this->sendFrom(), $to, $this->Title);
 			$emailMessage->setBody($content);
-			$emailMessage->setTemplate($template);
+			if ($this->customEmailBodyTemplate()) $emailMessage->setTemplate($this->customEmailBodyTemplate());
 			$emailMessage->send();
-			return true;//echo "Newsletter-Testmessage was send '".$to."'...";
+			//newsletter is sended
+			return true;
 		} else {
 			user_error("No permission ['EDIT_NEWSLETTER'] to send newsletter...");
 		}
 	}
 	
-	function subscribers() {
-		return DataObject::get("NewsletterMember","NewsletterCategoryID = ".$this->NewsletterCategoryID." AND Confirm=''");
+	function customEmailBodyTemplate() {
+		if ($this->EmailBodyTemplate) return $this->EmailBodyTemplate;
+		if ($p=$this->parentHolderPage()) {
+			if ($p->customEmailBodyTemplate()) return $p->customEmailBodyTemplate(); 
+		}
+		return null;
 	}
 	
+	function subscribers() {
+		return DataObject::get("NewsletterMember","NewsletterCategoryID = ".$this->NewsletterCategoryID." AND LENGTH(Email)>0");
+	}
+		
 }
 
 class NewsletterCampaign_Controller extends ContentController {

@@ -5,8 +5,8 @@ class NewsletterAdmin extends ModelAdmin {
 	public static $managed_models = array(
 		'NewsletterCategory',
 		'NewsletterMember',
+		'NewsletterReciever',
 		'NewsletterBlacklist',
-		'NewsletterAdvertisement',
 	);
 
 	static $url_segment = 'newslettermodule';

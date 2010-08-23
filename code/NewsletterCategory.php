@@ -9,7 +9,6 @@ class NewsletterCategory extends DataObject {
 		
 	static $allowed_children = array(
 		"NewsletterCampaign",
-		// "NewsletterBlacklist",
 		);
 		
 	function requireDefaultRecords() {
@@ -17,10 +16,10 @@ class NewsletterCategory extends DataObject {
 		if($this->class == 'NewsletterCategory') {
 			if(!DataObject::get($this->class)) {
 				$n = new NewsletterCategory();
-				$n->Title = "bpp";
-				$n->Description = "bpp newsletter";
+				$n->Title = "Newsletter";
+				$n->Description = "Default Newsletter";
 				$n->write();
-				Database::alteration_message("bpp newsletter category created","created");		
+				Database::alteration_message("default newsletter category created","created");		
 			}
 		}
 	}
