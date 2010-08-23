@@ -6,5 +6,5 @@ NewsletterHolder::$newsletterEmail = "admin@127.0.0.1";
 NewsletterHolder::$emailBodyTemplate = null;
 NewsletterHolder::$signupRequiredFields = array("Email");
 //transform pictures + links to absolue urls (better for newsletters)
-NewsletterCamaign::$makeRelativeToAbsoluteURLS = true;
+NewsletterCampaign::$makeRelativeToAbsoluteURLS = true;
 ?>
