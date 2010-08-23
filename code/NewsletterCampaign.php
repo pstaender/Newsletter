@@ -35,22 +35,22 @@ class NewsletterCampaign extends Page {
 		$fields = parent::getCMSFields();
 		$categories = DataObject::get("NewsletterCategory");
 		$fields->addFieldsToTab('Root.Content.Newsletter', array(
-			new TextField("Name"),
-			new EmailField("SendFrom"),
-			new TextField("TemplateFilename"),
-			new TextField("BodyStyle"),
-			new TextField("ContentStyle"),
-			new TextField("LinkStyle"),
-			new TextField("ImageStyle"),
-			new TextField("ParagraphStyle"),
-			new TextField("HeadingStyle"),
-			new TextField("HorizontalRuleStyle"),
-			new TextField("TableStyle"),
-			new TextField("TableCellAttribute"),
-			new TextField("TableCellStyle"),
+			new TextField("Name",_t("Newsletter.Campaign.Name","Name of the Newsletter Campaign")),
+			new EmailField("SendFrom",_t("Newsletter.Campaign.SendFrom","Send from eMail")),
+			new TextField("TemplateFilename", _t("Newsletter.Campaign.TemplateFilename","Name of template (no .ss)")),
+			new TextField("BodyStyle",_t("Newsletter.Campaign.BodyStyle","Body StyleSheet")),
+			new TextField("ContentStyle",_t("Newsletter.Campaign.Content","Content StyleSheet")),
+			new TextField("LinkStyle", _t("Newsletter.Campaign.LinkStyle","Style for every link [a]")),
+			new TextField("ImageStyle", _t("Newsletter.Campaign.ImageStyle","Style for every image [img]")),
+			new TextField("ParagraphStyle", _t("Newsletter.Campaign.ParagraphStyle","Style for every paragraph [p]")),
+			new TextField("HeadingStyle", _t("Newsletter.Campaign.HeadingStyle","Style for heading [h2]")),
+			new TextField("HorizontalRuleStyle", _t("Newsletter.Campaign.HorizontalRuleStyle","Style for every [hr]")),
+			new TextField("TableStyle", _t("Newsletter.Campaign.TableStyle","Style for every table [table]")),
+			new TextField("TableCellAttribute", _t("Newsletter.Campaign.TabelCellAttribute","[td] CellAtribute")),
+			new TextField("TableCellStyle", _t("Newsletter.Campaign.Style","[td] Stylesheet")),
 			new DropdownField(
 				'NewsletterCategoryID',
-				'Newsletter',
+				_t("Newsletter.Campaign.NewsletterCategory","Belongs to this newsletter category"),
 				$categories->toDropdownMap('ID', 'Title', 'Bitte Newsletterkategorie eintragen', true)
 				),
 			));
@@ -164,10 +164,11 @@ class NewsletterCampaign extends Page {
 		}
 		if (self::$makeRelativeToAbsoluteURLS) {
 			$base = Director::absoluteBaseURL();
-			// exit($base);
 			$s = $content;
 			$sl = "\'";
-			$s = preg_replace('/(\<.*)(src\=)+([\"'.$sl.']+[http\:\/\/|https\:\/\/]{0})(.*\>)/i',"$1$2$3".$base."$4",$s);
+			$s = str_replace('src="assets/','src="'.ViewableData::baseHref().'assets/',$s);
+			$s = str_replace('href="assets/','href="'.ViewableData::baseHref().'assets/',$s);
+			// $s = preg_replace('/(\<.*)(src\=)+([\"'.$sl.']+[http\:\/\/|https\:\/\/]{0})(.*\>)/i',"$1$2$3".$base."$4",$s);
 			$base = Director::protocolAndHost();
 $s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
 			$content = $s;
@@ -308,11 +309,7 @@ class NewsletterCampaign_Controller extends ContentController {
 	function plain() {
 		// $this->Content = 
 	}
-	
-	function Ads() {
-		return DataObject::get("NewsletterAdvertisement","NewsletterID = ".$this->dataRecord->ID);
-	}
-		
+			
 }
 
 ?>
