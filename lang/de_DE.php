@@ -45,4 +45,6 @@ $lang['de_DE']['Newsletter.Campaign']['TableStyle']="Tabellen Stylsheet für all
 $lang['de_DE']['Newsletter.Campaign']['TableCellAttribute']="Spaltenattribute für alle [td]";
 $lang['de_DE']['Newsletter.Campaign']['TableCellStyle']="Spalten Stylesheet für alle [td]";
 $lang['de_DE']['Newsletter.Campaign']['NewsletterCategory']="Gehört zu diesem Newsletter";
+$lang['de_DE']['Newsletter']['Unsubscribe']= "Newsletter abbestellen";
+$lang['de_DE']['Newsletter']['ThanksForSignup']="Vielen Dank für Ihre Anmeldung";
 ?>

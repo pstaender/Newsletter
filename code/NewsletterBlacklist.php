@@ -12,6 +12,9 @@ class NewsletterBlacklist extends DataObject {
 	static $belongs_to = array(
 		"NewsletterCategory"=>"NewsletterCategory",
 		);
+	static $summary_fields = array(
+		"Email","NewsletterCategory.Title","NewsletterCategory.Description"
+		);
 	
 }
 

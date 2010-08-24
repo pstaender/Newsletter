@@ -2,6 +2,10 @@
 <% require JavaScript(newsletter/javascript/newsletteradmin.js) %>
 <% require ThemedCSS(newsletteradmin) %>
 
+<h1>Edit recievers</h1>
+<h2>from Newsletter '$Title'</h2>
+<h3>Send From: $SelectedNewsletterCampaign.SendFrom</h3>
+
 <h3><a href="$SelectedNewsletterCampaign.Link">Newsletter Preview</a></h3>
 
 $Content

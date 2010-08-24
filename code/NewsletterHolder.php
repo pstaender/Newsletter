@@ -20,6 +20,7 @@ class NewsletterHolder extends SiteTree {
 	static $newsletterEmail = "admin@127.0.0.1";
 	static $emailBodyTemplate = null;
 	static $signupRequiredFields = array("Email");
+	static $newsletterTemplate = "NewsletterTemplate";
 	
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
@@ -30,7 +31,7 @@ class NewsletterHolder extends SiteTree {
 		return $fields;
 	}
 	
-	function sendFrom() {
+	function sendFromEmail() {
 		return $this->SendFrom ? $this->SendFrom : self::$newsletterEmail;
 	}
 	
@@ -57,6 +58,10 @@ class NewsletterHolder extends SiteTree {
 		return $i;
 	}
 	
+	function getNewsletterTemplate() {
+		return self::$newsletterTemplate;
+	}
+	
 	function requireDefaultRecords() {
 		parent::requireDefaultRecords();
 		if($this->class == 'NewsletterHolder') {
@@ -71,7 +76,6 @@ class NewsletterHolder extends SiteTree {
 		}
 	}
 	
-	
 }
 
 class NewsletterHolder_Controller extends Page_Controller {
@@ -80,6 +84,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 		"signup",
 		"unsubscribe",
 		"confirm",
+		"preview"=>"EDIT_NEWSLETTER",
 		"send"=>"EDIT_NEWSLETTER",
 		"admin"=>"EDIT_NEWSLETTER",
 		"ImportDefaultsForm"=>"EDIT_NEWSLETTER",
@@ -115,8 +120,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 				$member->write();
 				$this->ConfirmSuccessfull = true;
 				$this->Member = $member;
-				$this->Title = "Vielen Dank";
-				$this->Content = "<p>Vielen Dank, dass Sie sich für unseren Newsletter eingetragen haben.</p>";
+				$this->Title = _t("Newsletter.ThanksForSignup","Thanks for your signup!");
 				$others = DataObject::get("NewsletterMember","Confirm LIKE '{$email}' AND NewsletterCategoryID = ".$member->NewsletterCategoryID);
 								foreach ($others as $o) $o->delete();
 			} else {
@@ -128,7 +132,8 @@ class NewsletterHolder_Controller extends Page_Controller {
 	}
 		
 	function unsubscribe() {
-		$this->Title = "Newsletter abbestellen";
+		//unsubcribe/email/categoryid
+		$this->Title = _t('Newsletter.Unsubscribe','Unsubscribe newsletter');
 		if (($email = Director::urlParam("ID")) && ($otherID = Director::urlParam("OtherID"))) {
 			$email = Convert::Raw2SQL($email);
 			$otherID = (int) $otherID;
@@ -138,8 +143,6 @@ class NewsletterHolder_Controller extends Page_Controller {
 				$bl->NewsletterCategoryID = $otherID;
 				$bl->write();
 			}
-			$this->Title = "Newsletter abbestellt";
-			$this->Content .= "Sie wurden ausgetragen. ";
 			if ($m = DataObject::get_one("NewsletterMember","Email LIKE '{$email}' AND NewsletterCategoryID = {$otherID}")) {
 				if ($bl) {
 					$bl->RecieverID = $m->ID;
@@ -147,15 +150,13 @@ class NewsletterHolder_Controller extends Page_Controller {
 				}
 				
 				$m->delete();
-				$this->Content = "Bestätigung: Sie haben den Newsletter abbestellt.";
+				$this->NewsletterUnsubscribed = true;
 			} else {
-				// $this->Content .= "Sie waren in keiner festen Liste eingetragen...";
+				//not in list
+				$this->EmailNotInList = true;
 			}
-			return array();
-			
 		}
-		$this->Content = "Wählen Sie einen Newsletter aus, für den Sie sich abmelden möchten";
-		$this->Content = "Sie erhalten in jedem Newsletter einen individuellen abmelde Link.";
+		if ((!$this->EmailNotInList) && (!$this->NewsletterUnsubscribed)) $this->NoValidRequest = true;
 		return array();
 	}
 	
@@ -223,7 +224,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 				foreach($m as $mm) $mm->delete();
 			}
 			$this->Title = $title = _t("Newsletter.Mail.SignupTitle", "Thanks for you signup for our newlsetter");
-			$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->sendFrom(), $email, $title);
+			$emailMessage = new Email(DataObject::get_one("NewsletterHolder")->sendFromEmail(), $email, $title);
 			$emailMessage->setTemplate('NewsletterMail_SignupMessage');
 			$emailMessage->populateTemplate(array(
 				"Member" => $n,
@@ -248,7 +249,6 @@ class NewsletterHolder_Controller extends Page_Controller {
 	function Campaigns() {
 		return DataObject::get("NewsletterCampaign");
 	}
-		
 	
 	/**
 	 * ADMIN STUFF
@@ -274,6 +274,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 							$mailContent = str_replace("%FIRSTNAME%",$r->FirstName, $mailContent);
 							$mailContent = str_replace("%SURNAME%",$r->Surname, $mailContent);
 							$mailContent = str_replace("%SALUTATION%",$r->Salutation(), $mailContent);
+							$mailContent = str_replace("%FROM%",$camp->sendFromEmail(), $mailContent);
 							$mailContent = str_replace("%USER_EMAIL%",$r->Email, $mailContent);
 							$mailContent = str_replace("%NEWSLETTER_ID%",$newsletterCategory->ID, $mailContent);
 							if (DataObject::get("NewsletterBlacklist","Email LIKE '".$r->Email."' AND NewsletterCategoryID = ".$camp->NewsletterCategoryID)) {
@@ -281,7 +282,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 									$r->write();
 									//do not send
 								} else {
-									$email = new Email($camp->sendFrom(), $r->Email, $camp->Title, $mailContent);
+									$email = new Email($camp->sendFromEmail(), $r->Email, $camp->Title, $mailContent);
 									if ($email->send()) {
 										$r->Send = 1;
 										$r->write();
