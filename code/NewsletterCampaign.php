@@ -284,12 +284,12 @@ class NewsletterCampaign_Controller extends ContentController {
 	function send_to($data) {
 		$email = $_REQUEST['email'];
 		if (!NewsletterCampaign::isValidEmail($email)) {
-			echo("Please choose a valid eMail!");
+			echo(_t("Newsletter.Admin.NoValidEmail","Please choose a valid eMail address..."));
 			exit();
 		}
 		$this->dataRecord->sendTo($email);
 		
-		echo "Testversand an '".$email."'...";
+		echo _t("Newsletter.Admin.SendTestmailTo","Send testmail to")." '".$email."'...";
 		exit();
 		
 	}
@@ -303,13 +303,9 @@ class NewsletterCampaign_Controller extends ContentController {
 	}
 	
 	function NewsletterURL() {
-		return ($this->Parent()->URLSegment);
+		return ($this->dataRecord()->parentHolderPage()->URLSegment);
 	}
-	
-	function plain() {
-		// $this->Content = 
-	}
-			
+				
 }
 
 ?>

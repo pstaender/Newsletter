@@ -13,13 +13,6 @@ class NewsletterMember extends DataObject {
 		"Confirm"=>"Varchar(200)",
 		"Category"=>"Varchar(200)",
 		);
-		
-	static $field_names = array(
-		'FirstName' => 'Vorname',
-		'Surname' => 'Nachame',
-		'Gender' => 'Geschlecht',
-		'Email' => 'eMail',
-		);
 	
 	static $has_one = array(
 		"NewsletterCategory"=>"NewsletterCategory"

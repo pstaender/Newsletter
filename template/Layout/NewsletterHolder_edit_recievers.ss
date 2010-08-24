@@ -31,6 +31,9 @@ $RecieverForm
 <% end_control %>
 </table>
 
+<p class="userStatus0">Not sended</p>
+<p class="userStatus1">Sended</p>
+
 <p>
 	<h3>Delete $Recievers.Count recievers</h3>
 	$DeleteForm

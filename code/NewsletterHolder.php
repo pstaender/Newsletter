@@ -160,7 +160,11 @@ class NewsletterHolder_Controller extends Page_Controller {
 	}
 	
 	function selectedNewsletterCategory() {
-		if (Director::urlParam("ID")) return DataObject::get_by_id("NewsletterCategory",(int) Director::urlParam("ID"));
+		if (Director::urlParam("ID")) {
+			$param = Director::urlParam("ID");
+			if (((int) $param)>0) return DataObject::get_by_id("NewsletterCategory",(int)$param);
+			if ($category = DataObject::get_one("NewsletterCategory","Title LIKE '".Convert::raw2SQL($param)."'")) return $category; 
+		}
 		return DataObject::get("NewsletterCategory");
 	}
 	
@@ -422,7 +426,6 @@ class NewsletterHolder_Controller extends Page_Controller {
 				if (($f=="email")||($f=="mail")) $table['mail']=$j;
 				$j++;
 			}
-
 			$i=0;
 			foreach($lines as $line) {
 				$line = trim($line);
@@ -440,6 +443,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 								$r = new NewsletterReciever();
 								$r->FirstName = $firstname;
 								$r->Surname = $surname;
+								$r->Gender = $gender;
 								$r->NewsletterID = $id;
 								$r->Send = 0;
 								$r->Email = $email;
