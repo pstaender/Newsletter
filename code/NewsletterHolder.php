@@ -278,6 +278,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 									//do not send
 								} else {
 									$email = new Email($camp->sendFromEmail(), $r->Email, $camp->Title, $content);
+									if (NewsletterHolder::$emailBodyTemplate) $email->setTemplate(NewsletterHolder::$emailBodyTemplate);
 									if ($email->send()) {
 										$r->Send = 1;
 										$r->write();
