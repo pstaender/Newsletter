@@ -169,6 +169,10 @@ class NewsletterCampaign extends Page {
 		return self::getRenderedNewsletterContent($this, $member);
 	}
 	
+	function renderedNewsletterOnlyText($member = null) {
+		return str_replace("\n","<br/>",strip_tags(self::getRenderedNewsletterContent($this, $member)));
+	}
+	
 	static function stripSSFromFilename($filename) {
 		return preg_replace("/(.*)(\.ss)/i","$1",$filename);
 	}
@@ -284,10 +288,12 @@ class NewsletterCampaign_Controller extends ContentController {
 	}
 	
 	function render() {
-		//checks md5 value of email for security
-		if ($id=(int) $_REQUEST['memberid']) {
-			$this->Member = DataObject::get_by_id("NewsletterReciever",$id);
-			if (!(trim($_REQUEST['mail'])==trim($this->Member->Email))) exit("<p>Your mail  <b>doesn't match</b> to the member email...</p><p><h4>Syntax:</h4>?memberid=\$MemberID&mail=\$MemberEmail");
+		//checks email+id
+		if (isset($_REQUEST['memberid'])) {
+			if ($id=(int) $_REQUEST['memberid']) {
+				$this->Member = DataObject::get_by_id("NewsletterReciever",$id);
+				if (!(trim($_REQUEST['mail'])==trim($this->Member->Email))) exit("<p>Your mail  <b>doesn't match</b> to the member email...</p><p><h4>Syntax:</h4>?memberid=<i>\$MemberID</i>&mail=<i>\$MemberEmail</i>");
+			}
 		}
 		if ($template = $this->dataRecord->getNewsletterTemplate()) return $this->renderWith($template); 
 	}
