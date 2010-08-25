@@ -37,6 +37,7 @@ $RecieverForm
 
 <p class="userStatus0">Not sended</p>
 <p class="userStatus1">Sended</p>
+<p class="userStatus2">On Blacklist (sunsubscribed)</p>
 
 <p>
 	<h3>Delete $Recievers.Count recievers</h3>

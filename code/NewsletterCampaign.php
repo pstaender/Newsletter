@@ -89,7 +89,6 @@ class NewsletterCampaign extends Page {
 			),
 			null,
 			$sourceFilter = "NewsletterCategoryID = $this->NewsletterCategoryID"
-			// $sourceSort = "ID ASC"
 		);
 		$tablefield->setPermissions(
 				array(
@@ -101,6 +100,29 @@ class NewsletterCampaign extends Page {
 			);
 		$tablefield->setParentClass(false);
 		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.BlackList","Blacklist"), $tablefield);
+		
+		//Subscribers
+		$tablefield = new ComplexTableField(
+			$controller = $this,
+			$name = 'Subscribers',
+			'NewsletterMember',
+			$fieldList = array(
+				'Email'=>_t("Newsletter.Member.Email","eMail"),
+				'NewsletterCategory.Title'=>_t("Newsletter.NewsletterCategory","Newsletter Category"),
+			),
+			null,
+			$sourceFilter = "NewsletterCategoryID = $this->NewsletterCategoryID"
+		);
+		$tablefield->setPermissions(
+				array(
+					"show",
+					"edit",
+					"delete",
+					"add",
+				)
+			);
+		$tablefield->setParentClass(false);
+		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.Subscribers","Subscribers"), $tablefield);
 		return $fields;
 	}
 	
@@ -143,29 +165,19 @@ class NewsletterCampaign extends Page {
 		if ($p->Class = "NewsletterCategory") return $p;
 	}
 	
-	function renderedNewsletter() {
-		return self::getRenderedNewsletterContent($this);
+	function renderedNewsletter($member = null) {
+		return self::getRenderedNewsletterContent($this, $member);
 	}
 	
 	static function stripSSFromFilename($filename) {
 		return preg_replace("/(.*)(\.ss)/i","$1",$filename);
 	}
 	
-	static function getRenderedNewsletterContent($campaignPage) {
-		//set temp folder
-		$tmpBaseFolder = TEMP_FOLDER . '/newsletter';
-		$tmpFolder = (project()) ? "$tmpBaseFolder/" . project() : "$tmpBaseFolder/site";
-		Filesystem::removeFolder($tmpFolder);
-		if(!file_exists($tmpFolder)) Filesystem::makeFolder($tmpFolder);
-		$baseFolderName = basename($tmpFolder);
-		//Get site
-		Requirements::clear();
-		// SSViewer::setOption('rewriteHashlinks', false);
+	static function getRenderedNewsletterContent($campaignPage, $member = null) {
+		$param = ($member) ? "memberid=".$member->ID."&mail=".$member->Email : "";
 		$link = Director::makeRelative($campaignPage->Link());
-		$response = Director::test($link);
+		$response = Director::test($link."/render/?".$param);
 		$content = $response->getBody();
-		$contentfile = "$tmpFolder/".$campaignPage->URLSegment.".html";
-		//replace img + a tags with custom style
 		if (strlen(trim($campaignPage->ImageStyle))>0) {
 			$content = preg_replace('#(<img(.*)[/]?>)#U', '<img \2 style="'.$campaignPage->ImageStyle.'" />', $content); 
 		}
@@ -196,19 +208,11 @@ class NewsletterCampaign extends Page {
 			$sl = "\'";
 			$s = str_replace('src="assets/','src="'.ViewableData::baseHref().'assets/',$s);
 			$s = str_replace('href="assets/','href="'.ViewableData::baseHref().'assets/',$s);
-			// $s = preg_replace('/(\<.*)(src\=)+([\"'.$sl.']+[http\:\/\/|https\:\/\/]{0})(.*\>)/i',"$1$2$3".$base."$4",$s);
 			$base = Director::protocolAndHost();
-$s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
+			$s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
 			$content = $s;
 		}
-		if(!file_exists($contentfile)) {
-			// Write to file
-			if($fh = fopen($contentfile, 'w')) {
-				fwrite($fh, $content);
-				fclose($fh);
-			}
-		}
-		return file_get_contents($contentfile);
+		return $content;
 	}
 	
 	function onBeforeWrite() {
@@ -254,6 +258,12 @@ $s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2
 
 class NewsletterCampaign_Controller extends ContentController {
 	
+	static $allowed_actions = array(
+		"render",
+		"NewsletterNavigatorForm"=>"EDIT_NEWSLETTER",
+		"send_to" => "EDIT_NEWSLETTER",
+		);
+	
 	function init() {
 		parent::init();
 		Requirements::customCSS(
@@ -273,10 +283,11 @@ class NewsletterCampaign_Controller extends ContentController {
 		return array();
 	}
 	
-	function preview() {
+	function render() {
+		//checks md5 value of email for security
 		if ($id=(int) $_REQUEST['memberid']) {
 			$this->Member = DataObject::get_by_id("NewsletterReciever",$id);
-			// exit(Debug::show($this->Member));
+			if (!(trim($_REQUEST['mail'])==trim($this->Member->Email))) exit("<p>Your mail  <b>doesn't match</b> to the member email...</p><p><h4>Syntax:</h4>?memberid=\$MemberID&mail=\$MemberEmail");
 		}
 		if ($template = $this->dataRecord->getNewsletterTemplate()) return $this->renderWith($template); 
 	}

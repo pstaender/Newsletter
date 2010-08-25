@@ -31,6 +31,7 @@ $lang['de_DE']['Newsletter.Admin']['MailSended']="Email gesendet (0=nein/1=ja)";
 $lang['de_DE']['Newsletter.Admin']['SendTestmailTo']="Testmail wurde versand an";
 $lang['de_DE']['Newsletter.Mail']['SignupTitle'] = "Vielen Dank für Ihre Newsletteranmeldung";
 $lang['de_DE']['Newsletter.Admin']['NoValidEmail'] = "Bitte geben Sie eine gültige eMail-Adresse an";
+$lang['de_DE']['Newsletter.Admin']['Subscribers']="Abonnenten";
 $lang['de_DE']['Newsletter.Campaign']['Name']="Name der Newsletterversendung";
 $lang['de_DE']['Newsletter.Campaign']['SendFrom']="Absender eMail-Adresse";
 $lang['de_DE']['Newsletter.Campaign']['TemplateFilename']="Template Dateiname (ohne .ss)";

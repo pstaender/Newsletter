@@ -142,6 +142,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 				$bl->Email = $email;
 				$bl->NewsletterCategoryID = $otherID;
 				$bl->write();
+				$this->EmailOnBlacklist = true;
 			}
 			if ($m = DataObject::get_one("NewsletterMember","Email LIKE '{$email}' AND NewsletterCategoryID = {$otherID}")) {
 				if ($bl) {
@@ -257,32 +258,26 @@ class NewsletterHolder_Controller extends Page_Controller {
 	 */
 		
 	function send() {
-		if (!$this->isAjax()) echo "<h2>send() only via ajax-request</h2>Security issue...";
+		if (!$this->isAjax()) exit("<h2>send() only via ajax-request</h2>Security issue...");
 		$id = (int) Director::urlParam("ID");
 		$count = (int) Director::urlParam("OtherID");
 		if(!(($id>0) && ($count>0))) exit('<h2>Syntax</h2>'.$this->URL().'/send/$newsletter_campaign_id/$numbers_of_sendings_per_request/');
 		if ($camp = DataObject::get_by_id("NewsletterCampaign",$id)) {
 			$newsletterCategory = DataObject::get_by_id("NewsletterCategory",$camp->NewsletterCategoryID);
 			if ($recievers = DataObject::get("NewsletterReciever", "NewsletterID = {$id} AND Send = 0")) {
-				if ($content=NewsletterCampaign::getRenderedNewsletterContent($camp)) {
 					//send emails
 					$i=0;
+					//to each reciever
 					foreach ($recievers as $r) {
 						//send only, if sended items of this session are smaller than given in the url
+						$content=NewsletterCampaign::getRenderedNewsletterContent($camp,$r);
 						if ($i<$count) {
-							$mailContent= $content;
-							$mailContent = str_replace("%FIRSTNAME%",$r->FirstName, $mailContent);
-							$mailContent = str_replace("%SURNAME%",$r->Surname, $mailContent);
-							$mailContent = str_replace("%SALUTATION%",$r->Salutation(), $mailContent);
-							$mailContent = str_replace("%FROM%",$camp->sendFromEmail(), $mailContent);
-							$mailContent = str_replace("%USER_EMAIL%",$r->Email, $mailContent);
-							$mailContent = str_replace("%NEWSLETTER_ID%",$newsletterCategory->ID, $mailContent);
 							if (DataObject::get("NewsletterBlacklist","Email LIKE '".$r->Email."' AND NewsletterCategoryID = ".$camp->NewsletterCategoryID)) {
 									$r->Send = 2;
 									$r->write();
 									//do not send
 								} else {
-									$email = new Email($camp->sendFromEmail(), $r->Email, $camp->Title, $mailContent);
+									$email = new Email($camp->sendFromEmail(), $r->Email, $camp->Title, $content);
 									if ($email->send()) {
 										$r->Send = 1;
 										$r->write();
@@ -293,13 +288,7 @@ class NewsletterHolder_Controller extends Page_Controller {
 						
 					}
 					exit($i."");
-				}
-				
-			} else {
-				
 			}
-		} else {
-			//no id selected
 		}
 		return array();
 	}
@@ -325,6 +314,11 @@ class NewsletterHolder_Controller extends Page_Controller {
 				$recievers = $c->Recievers();
 				$subscribers = $c->Subscribers();
 				$i=0;
+				//delete status=2 mails
+				foreach ($recievers as $r) {
+					echo($r->Send."");
+					if ($r->Send==2) $r->delete();
+				}
 				foreach ($subscribers as $s) {
 					//check for duplicates
 					if ((!$recievers->find('Email', $s->Email)) && ($s->Email)) {
