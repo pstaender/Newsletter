@@ -283,8 +283,7 @@ class NewsletterCampaign_Controller extends ContentController {
 	}
 	
 	function index() {
-		if ($template = $this->dataRecord->getNewsletterTemplate()) return $this->renderWith($template); 	
-		return array();
+		exit(NewsletterCampaign::getRenderedNewsletterContent($this->dataRecord));
 	}
 	
 	function render() {
