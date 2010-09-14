@@ -32,9 +32,12 @@ class NewsletterCampaign extends Page {
 	static $icon = 'newsletter/images/icons/NewsletterCampaign';
 	
 	static $makeRelativeToAbsoluteURLS = true;
+	static $listAllRecieversInBackend = false;
 		
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
+		Requirements::javascript(THIRDPARTY_DIR . '/jquery/jquery.js');
+		Requirements::javascript('newsletter/javascript/newslettercms.js');
 		$categories = DataObject::get("NewsletterCategory");
 		$fields->addFieldsToTab('Root.Content.Newsletter', array(
 			new TextField("Name",_t("Newsletter.Campaign.Name","Name of the Newsletter Campaign")),
@@ -79,6 +82,10 @@ class NewsletterCampaign extends Page {
 			);
 		$tablefield->setParentClass(false);
 		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.RecieverList","List of recievers"), $tablefield);
+		
+		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.Addressimport","Addressimport"),
+			new TextareaField("RecieverImportList",_t("Newsletter.Admin.Addressimport","Addressimport"),20)
+		);
 		
 		//Blacklist
 		$tablefield = new ComplexTableField(
@@ -125,7 +132,46 @@ class NewsletterCampaign extends Page {
 			);
 		$tablefield->setParentClass(false);
 		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.Subscribers","Subscribers"), $tablefield);
+		
+		$html = "";
+		if (self::$listAllRecieversInBackend==true) { 
+			$style = "font-size: 0.8em; ";
+			$styleAttr = ' style="'.$style.'" ';
+			$html .= "<table>";
+			foreach($this->Recievers() as $r) {
+				$html .= "<tr style=\"background-color: ".(($r->even()) ? "#f6f6f6" : "#ddd").";\">";
+				$html .= "<td style=\"color:".$r->sendStatusColor()."; ".$style."\">".$r->Email."&nbsp;</td><td{$styleTag}>".$r->salutation()."&nbsp;</td><td>".$r->FirstName."&nbsp;</td><td>".$r->Surname."&nbsp;</td>";
+				$html .= "</tr>\n";
+				$sended = "red";
+			}
+			$html .= "</table>";
+		}
+		$fields->addFieldsToTab("Root.Content."._t("Newsletter.Admin.RecieverManagament","Subscribers"), array(
+			new HeaderField(2,_t("Newsletter.Admin.RecieverManagament","Subscribers")),
+			new LiteralField("recieverist",$html),
+			));
+		
 		return $fields;
+	}
+	
+	function getCMSActions(){
+		$actions = parent::getCMSActions();
+		$action = new FormAction(
+			   "doRemoveAllRecievers",
+			   _t("Newsletter.Admin.RemoveAllRecievers","Remove All Recievers")
+			);
+		$actions->push($action);
+		$action = new FormAction(
+			   "doImportSubscribers",
+			   _t("Newsletter.Admin.ImportSubscribers","Import Subscribers")
+			);
+		$actions->push($action);
+		$action = new FormAction(
+			   "doImportBatchList",
+			   _t("Newsletter.Admin.ImportAdresses","Import Adresses")
+			);
+		$actions->push($action);
+		return $actions;
 	}
 	
 	function parentHolderPage() {

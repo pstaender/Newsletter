@@ -29,9 +29,25 @@ $lang['de_DE']['Newsletter.Admin']['EmailBodyTemplate']="eMail Body Template (oh
 $lang['de_DE']['Newsletter.Admin']['RecieverList']="Empfängerliste";
 $lang['de_DE']['Newsletter.Admin']['MailSended']="Email gesendet (0=nein/1=ja)";
 $lang['de_DE']['Newsletter.Admin']['SendTestmailTo']="Testmail wurde versand an";
+$lang['de_DE']['Newsletter.Admin']['RecieverManagament']="Empfängerverwaltung";
 $lang['de_DE']['Newsletter.Mail']['SignupTitle'] = "Vielen Dank für Ihre Newsletteranmeldung";
 $lang['de_DE']['Newsletter.Admin']['NoValidEmail'] = "Bitte geben Sie eine gültige eMail-Adresse an";
 $lang['de_DE']['Newsletter.Admin']['Subscribers']="Abonnenten";
+$lang['de_DE']['Newsletter.Admin']['RemoveAllRecievers']="Alle Empf. löschen";
+$lang['de_DE']['Newsletter.Admin']['ImportSubscribers']="Abonenten reinl.";
+$lang['de_DE']['Newsletter.Admin']['RemoveAllRecievers']="Empf.liste leeren";
+$lang['de_DE']['Newsletter.Admin']['RemovedAllRecievers']="%s Empfänger wurden entfernt";
+$lang['de_DE']['Newsletter.Admin']['ImportAdresses']="Import. Addressen";
+$lang['de_DE']['Newsletter.Admin']['ImportedSubscribers']="%s Abonenten wurden als Empfänge hinzugefügt";
+$lang['de_DE']['Newsletter.Admin']['ImportedAdresses']="%s Adressen wurden von der Liste importiert";
+
+//Newsletter.Admin.ImportXAdresses
+//Newsletter.Admin.Addressimport
+$lang['de_DE']['Newsletter.SendStatus']['False']="Nicht versendet";
+$lang['de_DE']['Newsletter.SendStatus']['True']="Versendet";
+$lang['de_DE']['Newsletter.SendStatus']['Blacklist']="Auf der 'Blacklist'";
+$lang['de_DE']['Newsletter.SendStatus']['Undefined']="Nicht definiert";
+
 $lang['de_DE']['Newsletter.Campaign']['Name']="Name der Newsletterversendung";
 $lang['de_DE']['Newsletter.Campaign']['SendFrom']="Absender eMail-Adresse";
 $lang['de_DE']['Newsletter.Campaign']['TemplateFilename']="Template Dateiname (ohne .ss)";

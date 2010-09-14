@@ -1,4 +1,8 @@
 <?php
+
+Object::add_extension('CMSMain', 'NewsletterCMSDecorator');
+
+
 //do some config stuff here, if you like
 //otherwise delete / comment the following lines
 NewsletterHolder::$newsletterEmail = "admin@127.0.0.1";

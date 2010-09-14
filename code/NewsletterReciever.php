@@ -49,6 +49,20 @@ class NewsletterReciever extends DataObject {
 		if ($this->Gender=="f") return _t("Newsletter.Gender.Female","Mrs.");
 	}
 	
+	function sendStatus() {
+		if ($this->Send=0) return _t("Newsletter.SendStatus.False","Not Sended");
+		elseif ($this->Send=1) return _t("Newsletter.SendStatus.True","Sended");
+		elseif ($this->Send=2) return _t("Newsletter.SendStatus.Backlist","On Blacklist");
+		else return _t("Newsletter.SendStatus.Undefined","Undefined");
+	}
+	
+	function sendStatusColor() {
+		if ($this->Send=0) return "red";
+		elseif ($this->Send=1) return "green";
+		elseif ($this->Send=2) return "black";
+		else return "grey";
+	}
+	
 }
 
 ?>

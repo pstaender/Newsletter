@@ -95,6 +95,10 @@ class NewsletterHolder_Controller extends Page_Controller implements PermissionP
 		"RecieverForm"=>"EDIT_NEWSLETTER",
 		"SignupForm",
 		);
+		
+	// static $allowed_children = array(
+	// 	"NewsletterCategory",
+	// );
 	
 	function init() {
 		parent::init();
