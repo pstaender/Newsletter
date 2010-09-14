@@ -22,6 +22,8 @@ class NewsletterHolder extends SiteTree {
 	static $signupRequiredFields = array("Email");
 	static $newsletterTemplate = "NewsletterTemplate";
 	
+	static $icon = 'newsletter/images/icons/NewsletterHolder';
+	
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
 		$fields->addFieldsToTab('Root.Content.Newsletters',array(

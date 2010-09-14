@@ -28,6 +28,8 @@ class NewsletterCampaign extends Page {
 	static $has_many = array(
 		"Recievers"=>"NewsletterReciever",
 		);
+		
+	static $icon = 'newsletter/images/icons/NewsletterCampaign';
 	
 	static $makeRelativeToAbsoluteURLS = true;
 		
