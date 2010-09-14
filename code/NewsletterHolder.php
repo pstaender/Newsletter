@@ -21,6 +21,7 @@ class NewsletterHolder extends SiteTree {
 	static $emailBodyTemplate = null;
 	static $signupRequiredFields = array("Email");
 	static $newsletterTemplate = "NewsletterTemplate";
+	static $sendingsPerClick = 10;
 	
 	static $icon = 'newsletter/images/icons/NewsletterHolder';
 	
@@ -80,14 +81,14 @@ class NewsletterHolder extends SiteTree {
 	
 }
 
-class NewsletterHolder_Controller extends Page_Controller {
+class NewsletterHolder_Controller extends Page_Controller implements PermissionProvider {
 	
 	static $allowed_actions = array(
 		"signup",
 		"unsubscribe",
 		"confirm",
 		"preview"=>"EDIT_NEWSLETTER",
-		"send"=>"EDIT_NEWSLETTER",
+		"send"=>"SEND_NEWSLETTER",
 		"admin"=>"EDIT_NEWSLETTER",
 		"ImportDefaultsForm"=>"EDIT_NEWSLETTER",
 		"edit_recievers"=>"EDIT_NEWSLETTER",
@@ -245,7 +246,8 @@ class NewsletterHolder_Controller extends Page_Controller {
 		return $this->URLSegment;
 	}
 	
-	function SendLink($send=10) {
+	function SendLink($send=null) {
+		if (!($send>0)) $send = NewsletterHolder::$sendingsPerClick;
 		return $this->URL()."/send/".Director::urlParam("ID")."/".$send;
 	}
 	
@@ -459,6 +461,13 @@ class NewsletterHolder_Controller extends Page_Controller {
 		}
       	Director::redirectBack();
 	}
+	
+	function providePermissions() {
+	    return array(
+	      	"EDIT_NEWSLETTER" => "Edit a newsletter campaign",
+					"SEND_NEWSLETTER" => "Send a newsletter campaign",
+	    );
+ 	}
 
 }
 

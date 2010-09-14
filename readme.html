@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>NewsletterModule ReadMe</title>
+	<meta name="author" content="Philipp Staender <philipp.staender@gmail.com>">
+	
+	<style type="text/css">
+	body {
+		background: #fff;
+		color: #222;
+		font-family: 'Lucida Grande', 'Lucida Sans Unicode', Arial;
+		font-size: 12px;
+	}
+	</style>
+</head>
+<body>
+	
+	<h1>Newsletter module for SilverStripe 2.4+</h1>
+
+
+	<h2>Requirements</h2>
+	<p>You need a SilverStripe-Version greater than 2.4 - maybe it will run on 2.3.x, but I've not tested it on that.</p>
+	<h2>Installation</h2>
+	<p>Copy the module as module-folder named "newsletter" in the SilverStripe-root-directory and run a dev/build/?flush ...<br>A NewsletterHolderPage will be generated on default as draft in your SiteTree (URL "newsletter").</p>
+
+	<h2>Configuration</h2>
+	<p>In _config.php some Configurationsettings are made, but can be replaces / overwritten with your own preferences:</p>
+	<h3>NewsletterHolder::$newsletterEmail = $emailAddress</h3>
+	<p>Default sender / return address, if none is specified in the HolderPage oder Campaign</p>
+	<h3>NewsletterHolder::$emailBodyTemplate = $nameOfTheTemplate</h3>
+	<p>Normaly, SilverStripe uses an '&lt;html&gt;&lt;head&gt;...&lt;/head&gt;&lt;body&gt;$Body&lt;/body&gt;&lt;/html&gt;'-Template for every HTML-Email, wich is not usefull for sending user defined HTML-Newsletters, so its replaced by an empty .ss-template-file by default, but can be changed</p>
+
+	<h3>NewsletterHolder::$newsletterTemplate = $nameOfTheTemplate</h3>
+	<p>Default NewsletterCampaign template if none is specified in the CampaignPage - alway without .ss<br>(e.g. NewsletterCampaignTemplate.ss =&gt; NewsletterCampaignTemplate)</p>
+	<h3>NewsletterHolder::$signupRequiredFields = array()</h3>
+	<p>Set required field for the signup-form</p>
+	<h3>NewsletterCampaign::$makeRelativeToAbsoluteURLS = true</h3>
+	<p>Normally SilverStripe works with relative links according to the &lt;base&gt;-tag, wich is best practice.<br>But for newsletter its better to work with absolute links, so every &lt;img /&gt; and &lt;a&gt;&lt;/a&gt; link will be replaced by an absolute link, if a relative is used.</p>
+
+	<h3>NewsletterHolder::$sendingsPerClick = 10</h3>
+	<p>Set a number for sending per click. Use 10 or less if you're woking on a slow webserver.</p>
+	<h2>How does it work</h2>
+	<p>There is one <strong>NewsletterHolderPage</strong> in the <strong>SiteTree</strong>, wich is for organizing and managing all <strong>NewsletterCampaigns</strong>. The URL of the <strong>NewsletterHolderPage</strong> is important for managing, signup, unsubscribe newsletter... so keep the URL simple and if you use nested-URLs, keep at teh bottom of the tree (e.g. "yourpage.com/newsletter")<br>Create as much <strong>NewsletterCampaigns</strong> as you wish, inside the <strong>NewsletterHolder</strong>. Each campaign include specific information for the <strong>NewsletterCampaign</strong>: content, name of the template file, look for links, tables, cells ...<br><strong>NewsletterCategory</strong>, can be managed trough die Admin-CMS -&gt; "newsletter" ('admin/newslettermodule'). Create a category for your newsletter (e.g. "TShirtShopNewsletter"). Each campaign should be related with a <strong>NewsletterCategory</strong> for managing subscribers.</p>
+
+	<h2>Models, Pages and what they do</h2>
+	<h3>NewsletterHolderPage (SiteTree)</h3>
+	<p>Page in a Sitetree for managing and holding all NewsletterCampaigns</p>
+	<h3>NewsletterCampaign (SiteTree)</h3>
+	<p>NewslletterCampaign contains all data for a newsletter campaign, uncluding the reciever list</p>
+	<h3>NewsletterCategory (DataObject)</h3>
+	<p>NewsletterCategory can be assigned to NewsletterCampaigns and subscribers (NewsletterMember)</p>
+	<h3>NewsletterMember (DataObject)</h3>
+	<p>A subscriber for a NewsletterCategory (doesn't extend from Member, but could be if you want to)</p>
+
+	<h3>NewsletterReciever (DataObject)</h3>
+	<p>Every NewsletterCampaign can have Recievers, wich are not obligatory subscribers... these are just all people wich will recieve this&nbsp; newsletter(campaign). You have first to "import" the subscribers to the current NewsletterCampaign-Reciever-list. Every reciever has a flag (sended, not senden, not sended because on blacklist),</p>
+	<h3>NewsletterBlacklist (DataObject)</h3>
+	<p>If someone unscubscribes a newsletter (NewsletterCategory, to be exact), he will be add to the blacklist. So he will recieve no further mails/newsletter under any circumstances (except he will signup again with his email through the signup form).<br><br>The subscribers (NewsletterMember), recievers (NewsletterReciever), categories (NewsletterCategory) and blacklist (NewsletterBlacklist) can be manged in 'admin/newslettermodule'. Recievers can also be managed trough NewsletterCampaign in the SiteTree.<br><br></p>
+	<h2>Managing + adding subscribers for a campaign</h2>
+	<p>For subscribers, you have to create a <strong>NewsletterCategory</strong> - because every subscriber (<strong>NewsletterMember</strong>) <strong>are</strong> realated to a <strong>NewsletterCategory</strong>.<br>The signup + unsubscribe pages are in the <strong>NewsletterHolderPage</strong>.</p>
+
+	<p>Here 'yourpage.com/newsletter/' is the full path to your <strong>NewsletterHolderPage</strong>:<br><br>yourpage.com/newsletter/signup<br>yourpage.com/newsletter/unsubscribe/<strong>$EmailOfTheReciever</strong>/<strong>$NewsletterCategoryID</strong>/<br><br>If you have created a campaign, call the "Frontend"-Admin-Interface (must be logged in with permission <strong>EDIT_NEWSLETTER</strong> and, if necessary <strong>SEND_NEWSLETTER</strong> --&gt; admin/security --&gt; permissions).<br>You'll see a list with all newsletter campaigns. Select the one you want to manage.</p>
+
+	<h4>Import subscribers to reciever list</h4>
+	<p>Use the button <strong>Import Subscribers</strong>... all subscribers will be copied to the reciever list.</p>
+	<p>Import any othe recievers in a batch</p>
+	<p>Use the textarea-form to import a batch-list of recievers. It's orientated to the csv-format, wich means:</p>
+	<ul><li>first line can be used for defining the columns (if not, every line can only be an email-address)</li>
+	<li>sperate columns with <strong>;</strong> or <strong>,</strong></li>
+
+	<li>the following columns can be defined: <strong>gender;firstname;surname;email</strong> -&gt; shortversions <strong>sex;first;sur;mail</strong> are accepted as well</li>
+	<li>all lines must follow this definition</li>
+	<li>if not: only a column, wich will be detected as a valid email will be applied</li>
+	<li>e.g.<br>gender;first;sur;email<br>m;Steve;Jobs;steve@apple.com<br>f;Natalie;Portman;natalie.portman@hotmail.com</li>
+
+	</ul><p>After you got your reciever list completed, you can start sending your newsletter. Click on the red labeled <strong>SEND NEWSLETTER</strong> button and be patient :)</p>
+	<h2>Userdefines template and test-sending</h2>
+	<p>By default it will use <strong>NewsletterTemplate.ss</strong>, wich is inside the <strong>module/template/</strong> - folder ... this is just a skeleton template... make your own an create a template folder for newsletter with your theme (e.g. with using theme "BlackCandy": <strong>themes/blackcandy_newsletter/template/MyNewsletterTemplate.ss</strong> ). Make sure, that you set (in this case MyNewsletterTemplate) as template name in your newsletter campaign page!</p>
+
+	<p>If everythings fine, you can send some tests to any email-addres you wish... just add <strong>?send_to=email.to@send.to</strong> to your newsletter campaign page in the <strong>frontend </strong>... (e.g. <strong>http://server/newsletter/newsletter-campaign-in-spring/?send_to=email@anyone.com</strong> ... quite simple.</p>
+	<h2>Security</h2>
+	<p>Every mail will be sended only once - if it's sended, it will be marked with a flag. If you want to send it again to a reciever / many recievers, you have to delete them from the reciever list. If someone unsubscribed a newsletter, they will be added to the blacklist... if they are on the blacklist, they will recieve no newsletter, even if they are on the reciever list. They will be deleted from the blacklist, if they subscribe to a newsletter again (or if you delete them from the blacklist manually -&gt; but this is deprecated!)</p>
+	<h2>Improvements and future versions</h2>
+
+	<p>I wrote this modul just for myself getting some newsletter jobs for clients done - that's why I just made this temporarly newsletter-admin-frontend-interface... it will take me some times to figure out, how to integerate all the features adequately. The next version, v0.5, will have to following new / different features than v0.4x:</p>
+	<ul><li>newsletter-campaign management (adding recievers, import subscribers + sending newsletters) will be available in the SilverStripe backend</li>
+	<li>newslettercategory will be extended from SiteTree, not from a DataObject... that means, newsletter categories will be subpages of NewsletterHolderPage:<br>NewsletterHolderPage<br>+-NewsletterCategoryPage#1<br>|&nbsp; +-NewsletterCampaign#1<br>|&nbsp; +-NewsletterCampaing#2<br>|<br>+-NewsletterCategory#2<br>....</li>
+
+	<li>there will be a fu function for migrating NewsletterCategory into the SiteTree</li>
+	<li>look for a method, to check that email is sended ... doesn't exists, yet... maybe some limitations in php?!</li>
+	</ul><p>Thats all for now... I hope the module can help you. Feel free to extend / redistribute it :)</p>
+	<p>Philipp, Sept. 2010</p>
+
+</body>
+</html>

@@ -6,6 +6,8 @@ NewsletterHolder::$newsletterEmail = "admin@127.0.0.1";
 NewsletterHolder::$emailBodyTemplate = "EmailTemplate";
 NewsletterHolder::$newsletterTemplate = "NewsletterTemplate";
 NewsletterHolder::$signupRequiredFields = array("Email");
+//sendings per click, keep it between 5 - 20, if ou have a slow webserver, try below 5
+NewsletterHolder::$sendingsPerClick = 10;
 //transform pictures + links to absolue urls (better for newsletters)
 NewsletterCampaign::$makeRelativeToAbsoluteURLS = true;
 ?>
