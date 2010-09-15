@@ -273,9 +273,9 @@ class NewsletterHolder_Controller extends Page_Controller implements PermissionP
 					$i=0;
 					//to each reciever
 					foreach ($recievers as $r) {
-						//send only, if sended items of this session are smaller than given in the url
-						$content=NewsletterCampaign::getRenderedNewsletterContent($camp,$r);
 						if ($i<$count) {
+							//send only, if sended items of this session are smaller than given in the url
+							$content=NewsletterCampaign::getRenderedNewsletterContent($camp,$r);
 							if (DataObject::get("NewsletterBlacklist","Email LIKE '".$r->Email."' AND NewsletterCategoryID = ".$camp->NewsletterCategoryID)) {
 									$r->Send = 2;
 									$r->write();
