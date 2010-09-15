@@ -20,7 +20,7 @@ class NewsletterCMSDecorator extends LeftAndMainDecorator {
 		$c = DataObject::get_by_id('NewsletterCampaign', $id);
 		
 		$recievers = $c->Recievers();
-		$subscribers = $c->Subscribers();
+		$subscribers = $c->Category()->Subscribers();
 		$i=0;
 		//delete status=2 mails
 		foreach ($recievers as $r) {

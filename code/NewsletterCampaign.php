@@ -38,7 +38,6 @@ class NewsletterCampaign extends Page {
 		$fields = parent::getCMSFields();
 		Requirements::javascript(THIRDPARTY_DIR . '/jquery/jquery.js');
 		Requirements::javascript('newsletter/javascript/newslettercms.js');
-		$categories = DataObject::get("NewsletterCategory");
 		$fields->addFieldsToTab('Root.Content.Newsletter', array(
 			new TextField("Name",_t("Newsletter.Campaign.Name","Name of the Newsletter Campaign")),
 			new EmailField("SendFrom",_t("Newsletter.Campaign.SendFrom","Send from eMail")),
@@ -53,11 +52,6 @@ class NewsletterCampaign extends Page {
 			new TextField("TableStyle", _t("Newsletter.Campaign.TableStyle","Style for every table [table]")),
 			new TextField("TableCellAttribute", _t("Newsletter.Campaign.TabelCellAttribute","[td] CellAtribute")),
 			new TextField("TableCellStyle", _t("Newsletter.Campaign.Style","[td] Stylesheet")),
-			new DropdownField(
-				'NewsletterCategoryID',
-				_t("Newsletter.Campaign.NewsletterCategory","Belongs to this newsletter category"),
-				$categories->toDropdownMap('ID', 'Title', 'Bitte Newsletterkategorie eintragen', true)
-				),
 			));
 		$tablefield = new ComplexTableField(
 			$controller = $this,
@@ -86,52 +80,6 @@ class NewsletterCampaign extends Page {
 		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.Addressimport","Addressimport"),
 			new TextareaField("RecieverImportList",_t("Newsletter.Admin.Addressimport","Addressimport"),20)
 		);
-		
-		//Blacklist
-		$tablefield = new ComplexTableField(
-			$controller = $this,
-			$name = 'Blacklist',
-			'NewsletterBlacklist',
-			$fieldList = array(
-				'Email'=>_t("Newsletter.Member.Email","eMail"),
-				'NewsletterCategory.Title'=>_t("Newsletter.NewsletterCategory","Newsletter Category"),
-			),
-			null,
-			$sourceFilter = "NewsletterCategoryID = $this->NewsletterCategoryID"
-		);
-		$tablefield->setPermissions(
-				array(
-					"show",
-					"edit",
-					"delete",
-					"add",
-				)
-			);
-		$tablefield->setParentClass(false);
-		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.BlackList","Blacklist"), $tablefield);
-		
-		//Subscribers
-		$tablefield = new ComplexTableField(
-			$controller = $this,
-			$name = 'Subscribers',
-			'NewsletterMember',
-			$fieldList = array(
-				'Email'=>_t("Newsletter.Member.Email","eMail"),
-				'NewsletterCategory.Title'=>_t("Newsletter.NewsletterCategory","Newsletter Category"),
-			),
-			null,
-			$sourceFilter = "NewsletterCategoryID = $this->NewsletterCategoryID"
-		);
-		$tablefield->setPermissions(
-				array(
-					"show",
-					"edit",
-					"delete",
-					"add",
-				)
-			);
-		$tablefield->setParentClass(false);
-		$fields->addFieldToTab("Root.Content."._t("Newsletter.Admin.Subscribers","Subscribers"), $tablefield);
 		
 		$html = "";
 		if (self::$listAllRecieversInBackend==true) { 
@@ -174,22 +122,26 @@ class NewsletterCampaign extends Page {
 		return $actions;
 	}
 	
-	function parentHolderPage() {
+	function parentPageByClassName($classname) {
 		//search three levels max. above
 		$page = null;
 		if ($this->ParentID>0) {
 			$page = $this->Parent();
-			if ($page->ClassName=="NewsletterHolder") return $page;
+			if ($page->ClassName==$classname) return $page;
 			if ($page->ParentID>0) {
 				$page = $page->Parent();
-				if ($page->ClassName=="NewsletterHolder") return $page;
+				if ($page->ClassName==$classname) return $page;
 				if ($page->ParentID>0) {
 					$page = $page->Parent();
-					if ($page->ClassName=="NewsletterHolder") return $page;
+					if ($page->ClassName==$classname) return $page;
 				}
 			}
 		}
 		return $page;
+	}
+	
+	function parentHolderPage() {
+		return $this->parentPageByClassName("NewsletterHolder");
 	}
 	
 	function getSendFromParent() {
@@ -207,12 +159,7 @@ class NewsletterCampaign extends Page {
 	function getNewsletterTemplate() {
 		return ($this->TemplateFilename) ? $this->TemplateFilename : $this->parentHolderPage()->getNewsletterTemplate();
 	}
-	
-	function parentNewsletterCategory() {
-		$p = $this->parentHolderPage();
-		if ($p->Class = "NewsletterCategory") return $p;
-	}
-	
+		
 	function renderedNewsletter($member = null) {
 		return self::getRenderedNewsletterContent($this, $member);
 	}
@@ -273,8 +220,11 @@ class NewsletterCampaign extends Page {
 		if ($this->EmailBodyTemplate) $this->EmailBodyTemplate = self::stripSSFromFilename($this->EmailBodyTemplate);
 		return parent::onBeforeWrite();
 	}
+
+	function category() {
+		return $this->parentPageByClassName("NewsletterCategory");
+	}
 	
-	//Not in use
 	static function isValidEmail($email) {
 		return eregi("^[[:alnum:]][a-z0-9_.-]*@[a-z0-9.-]+\.[a-z]{2,4}$", $email);
 	}

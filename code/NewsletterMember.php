@@ -16,7 +16,11 @@ class NewsletterMember extends DataObject {
 	
 	static $has_one = array(
 		"NewsletterCategory"=>"NewsletterCategory"
-		);
+	);
+		
+	static $belongs_to = array(
+		"NewsletterCategory"=>"NewsletterCategory"
+	);
 		
 	static $summary_fields = array(
 		"Email","FirstName","Surname","NewsletterCategory.Description"

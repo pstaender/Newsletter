@@ -11,10 +11,14 @@ class NewsletterHolder extends SiteTree {
 	static $db = array(
 		"SendFrom"=>"Varchar(200)",
 		"EmailBodyTemplate"=>"Varchar(100)",
-		);
+	);
 	
 	static $has_many = array(
 		"Blacklist"=>"NewsletterBlacklist"
+	);
+	
+	static $allowed_children = array(
+		"NewsletterCategory",
 	);
 		
 	static $newsletterEmail = "admin@127.0.0.1";
@@ -96,9 +100,9 @@ class NewsletterHolder_Controller extends Page_Controller implements PermissionP
 		"SignupForm",
 		);
 		
-	// static $allowed_children = array(
-	// 	"NewsletterCategory",
-	// );
+	static $allowed_children = array(
+		"NewsletterCategory",
+	);
 	
 	function init() {
 		parent::init();
@@ -140,6 +144,7 @@ class NewsletterHolder_Controller extends Page_Controller implements PermissionP
 		
 	function unsubscribe() {
 		//unsubcribe/email/categoryid
+		//todo, statt id auch urlsegment in betracht ziehen
 		$this->Title = _t('Newsletter.Unsubscribe','Unsubscribe newsletter');
 		if (($email = Director::urlParam("ID")) && ($otherID = Director::urlParam("OtherID"))) {
 			$email = Convert::Raw2SQL($email);
