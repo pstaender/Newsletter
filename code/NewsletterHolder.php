@@ -26,6 +26,7 @@ class NewsletterHolder extends SiteTree {
 	static $signupRequiredFields = array("Email");
 	static $newsletterTemplate = "NewsletterTemplate";
 	static $sendingsPerClick = 10;
+	static $unsubscribeForm = false;
 	
 	static $icon = 'newsletter/images/icons/NewsletterHolder';
 	
@@ -141,22 +142,23 @@ class NewsletterHolder_Controller extends Page_Controller implements PermissionP
 		}
 		return array();
 	}
-		
+			
 	function unsubscribe() {
 		//unsubcribe/email/categoryid
-		//todo, statt id auch urlsegment in betracht ziehen
+		//must be submitted with ID or Title of NewsletterCategory
 		$this->Title = _t('Newsletter.Unsubscribe','Unsubscribe newsletter');
-		if (($email = Director::urlParam("ID")) && ($otherID = Director::urlParam("OtherID"))) {
+		if (($email = Director::urlParam("ID")) && ($id = Director::urlParam("OtherID"))) {
 			$email = Convert::Raw2SQL($email);
-			$otherID = (int) $otherID;
-			if (!DataObject::get_one("NewsletterBlacklist","Email LIKE '{$email}' AND NewsletterCategoryID = {$otherID}")) {
+			$categoryID = Convert::Raw2SQL($id);
+			if ($category = DataObject::get_one("NewsletterCategory","Title LIKE '{$categoryID}'")) $categoryID = $category->ID;
+			if (!DataObject::get_one("NewsletterBlacklist","Email LIKE '{$email}' AND  NewsletterCategoryID = {$categoryID}")) {
 				$bl = new NewsletterBlacklist();
 				$bl->Email = $email;
 				$bl->NewsletterCategoryID = $otherID;
 				$bl->write();
 				$this->EmailOnBlacklist = true;
 			}
-			if ($m = DataObject::get_one("NewsletterMember","Email LIKE '{$email}' AND NewsletterCategoryID = {$otherID}")) {
+			if ($m = DataObject::get_one("NewsletterMember","Email LIKE '{$email}' AND NewsletterCategoryID = {$categoryID}")) {
 				if ($bl) {
 					$bl->RecieverID = $m->ID;
 					$bl->write();
