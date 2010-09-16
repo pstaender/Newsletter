@@ -79,7 +79,7 @@ class NewsletterHolder extends SiteTree {
 				$n->URLSegment = "newsletter";
 				$n->SendFrom = self::$newsletterEmail;
 				$n->write();
-				Database::alteration_message("newsletter holder created","created");		
+				DB::alteration_message("newsletter holder created","created");		
 			}
 		}
 	}

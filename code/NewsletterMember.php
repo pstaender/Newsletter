@@ -23,7 +23,7 @@ class NewsletterMember extends DataObject {
 	);
 		
 	static $summary_fields = array(
-		"Email","FirstName","Surname","NewsletterCategory.Description"
+		"Email","FirstName","Surname","NewsletterCategory.Title"
 		);
 		
 	function gender() {
