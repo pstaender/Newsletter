@@ -214,6 +214,7 @@ class NewsletterCampaign extends Page {
 			$sl = "\'";
 			$s = str_replace('src="assets/','src="'.ViewableData::baseHref().'assets/',$s);
 			$s = str_replace('href="assets/','href="'.ViewableData::baseHref().'assets/',$s);
+			$s = str_replace('/render/?','?',$s);
 			$base = Director::protocolAndHost();
 			$s=preg_replace('#(href)="([^:"]*)("|(?:(?:%20|\s|\+)[^"]*"))#','$1="'.$base.'$2$3',$s);
 			$content = $s;
