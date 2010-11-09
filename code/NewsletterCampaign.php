@@ -206,7 +206,7 @@ class NewsletterCampaign extends Page {
 			$content = preg_replace('#(<p(.*)[/]?>)#U', '<p \2 style="'.$campaignPage->ParagraphStyle.'" >', $content); 
 		}
 		if (strlen(trim($campaignPage->HorizontalRuleStyle))>0) {
-			$content = preg_replace('#(<hr (.*)[/]?>)#U', '<img \2 style="'.$campaignPage->HorizontalRuleStyle.'" />', $content); 
+			$content = preg_replace('#(<hr(.*)[/]?>)#U', '<hr \2 style="'.$campaignPage->HorizontalRuleStyle.'" />', $content); 
 		}
 		if (self::$makeRelativeToAbsoluteURLS) {
 			$base = Director::absoluteBaseURL();
